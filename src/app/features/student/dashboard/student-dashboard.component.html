@@ -47,15 +47,15 @@
           <p class="mt-2 max-w-xl text-sm leading-6 text-slate-400">El anillo resume tu asistencia general y las barras muestran el volumen de incidencias por semana.</p>
         </div>
 
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4 evolution-right">
           <div class="flex h-28 w-28 flex-shrink-0 items-center justify-center rounded-full p-3 shadow-lg shadow-cyan-950/20" [style.background]="progressStyle().background">
             <div class="flex h-20 w-20 flex-col items-center justify-center rounded-full border border-white/10 bg-slate-950/95 text-center overflow-hidden">
               <span class="text-2xl font-semibold text-white">{{ student().summary.asistencia }}%</span>
-              <span class="text-[10px] uppercase tracking-[0.15em] text-slate-400 whitespace-nowrap">Asistencia</span>
+              <span class="text-[10px] uppercase tracking-[0.15em] text-slate-400">Asistencia</span>
             </div>
           </div>
 
-          <div class="space-y-2 text-sm text-slate-300">
+          <div class="space-y-2 text-sm text-slate-300 evolution-stats">
             <p><span class="text-emerald-200">{{ student().summary.justificadas }}</span> justificadas</p>
             <p><span class="text-rose-200">{{ student().summary.noJustificadas }}</span> no justificadas</p>
             <p><span class="text-cyan-200">{{ student().summary.total }}</span> incidencias totales</p>

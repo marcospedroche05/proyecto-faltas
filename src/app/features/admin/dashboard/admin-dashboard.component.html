@@ -52,28 +52,47 @@
     <article class="rounded-[2rem] border border-white/10 bg-slate-900/75 p-6 shadow-2xl shadow-indigo-950/20 backdrop-blur-xl">
       <div>
         <p class="text-xs uppercase tracking-[0.35em] text-cyan-300/80">Operativa</p>
-        <h3 class="mt-2 text-2xl font-semibold text-white">Acciones rápidas de gestión</h3>
+        <h3 class="mt-2 text-2xl font-semibold text-white">Gestión de incidencias por curso</h3>
       </div>
 
-      <div class="mt-5 grid gap-3 sm:grid-cols-2">
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p class="text-sm font-medium text-white">Alta de usuarios</p>
-          <p class="mt-2 text-sm text-slate-400">Crear alumnos, profesores y administradores.</p>
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p class="text-sm font-medium text-white">Cursos y asignaturas</p>
-          <p class="mt-2 text-sm text-slate-400">Configurar cursos, grupos y relación con usuarios.</p>
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p class="text-sm font-medium text-white">Justificantes</p>
-          <p class="mt-2 text-sm text-slate-400">Cambiar incidencias a justificadas tras validación documental.</p>
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p class="text-sm font-medium text-white">Supervisión</p>
-          <p class="mt-2 text-sm text-slate-400">Control visual sobre actividad reciente y estado global.</p>
+      <div class="mt-5">
+        <label class="text-sm text-slate-400">Seleccionar curso</label>
+        <select class="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100" [(ngModel)]="selectedCourseId" (ngModelChange)="selectCourse($event)">
+          <option [ngValue]="null">-- Seleccionar --</option>
+          <option *ngFor="let c of courses()" [ngValue]="c.idcurso ?? c.idCurso ?? c.id">{{ c.nombre || c.nombreCurso || c.nombreCurso }}</option>
+        </select>
+
+        <div class="mt-4">
+          <p class="text-sm text-slate-400">Incidencias del curso</p>
+          <div class="mt-3 max-h-[50vh] overflow-y-auto">
+            <table class="min-w-full divide-y divide-white/10 text-left text-sm">
+              <thead class="bg-white/5 text-slate-300">
+                <tr>
+                  <th class="px-4 py-3 font-medium">Alumno</th>
+                  <th class="px-4 py-3 font-medium">Tipo</th>
+                  <th class="px-4 py-3 font-medium">Fecha</th>
+                  <th class="px-4 py-3 font-medium">Comentario</th>
+                  <th class="px-4 py-3 font-medium">Justificada</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/10">
+                <tr *ngFor="let inc of incidencias(); trackBy: trackByIncidente" class="align-top">
+                  <td class="px-4 py-4">
+                    <p class="font-semibold text-white">{{ inc.alumno?.usuario || inc.alumno?.email || inc.nombreAlumno || 'Alumno' }}</p>
+                    <p class="mt-1 text-xs text-slate-400">{{ inc.alumno?.email }}</p>
+                  </td>
+                  <td class="px-4 py-4">{{ inc.tipoFalta || inc.tipo || inc.tipoFalta }}</td>
+                  <td class="px-4 py-4">{{ inc.fechaIncidencia || inc.fecha || inc.fechaIncidencia | date:'dd/MM/yyyy · HH:mm' }}</td>
+                  <td class="px-4 py-4">{{ inc.comentario }}</td>
+                  <td class="px-4 py-4">
+                    <button type="button" class="rounded-2xl border px-3 py-2 text-sm" (click)="toggleJustificada(inc)">{{ inc.esJustificada ? 'Deshacer' : 'Justificar' }}</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-
       <div class="mt-6 rounded-3xl border border-white/10 bg-gradient-to-r from-cyan-300/10 to-emerald-300/10 p-5">
         <p class="text-sm font-medium text-white">Última sincronización</p>
         <p class="mt-2 text-sm text-slate-300">{{ snapshot().ultimaSincronizacion }}</p>

@@ -1,3 +1,42 @@
 :host {
 	display: block;
 }.panel { }
+/* Allow flex children to shrink to avoid overflow/overlap */
+:host .flex {
+	min-width: 0;
+}
+
+/* Ensure small labels wrap and long text doesn't overflow */
+:host p, :host span, :host div {
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+/* Make insight cards and trend labels respect box sizing and wrap */
+:host .rounded-2xl {
+	min-width: 0;
+}
+
+/* Improve readability for the summary stats area on small screens */
+@media (max-width: 640px) {
+	:host .flex.items-center {
+		flex-direction: row;
+		gap: 0.5rem;
+	}
+	:host .space-y-2 {
+		display: block;
+	}
+}
+
+/* On very wide screens, stack the ring and the stats vertically so stats appear below the ring */
+@media (min-width: 1400px) {
+	:host .evolution-right {
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	:host .evolution-stats {
+		text-align: center;
+	}
+}

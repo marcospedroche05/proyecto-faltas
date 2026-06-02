@@ -22,7 +22,7 @@
         </article>
         <article class="rounded-2xl border border-white/10 bg-white/5 p-4">
           <p class="text-sm font-medium tracking-wider text-slate-400">Historial</p>
-          <p class="mt-2 text-3xl font-semibold text-cyan-200">{{ activeCourse().historial.length }}</p>
+          <p class="mt-2 text-3xl font-semibold text-cyan-200">{{ activeCourse()?.historial?.length ?? 0 }}</p>
         </article>
       </div>
     </div>
@@ -35,7 +35,7 @@
         <h3 class="mt-2 text-2xl font-semibold text-white">Selecciona el grupo activo</h3>
 
         <div class="mt-5 space-y-3">
-          <button *ngFor="let course of courses(); trackBy: trackByCourse" type="button" (click)="selectCourse(course.id)" class="w-full rounded-2xl border px-4 py-4 text-left transition" [ngClass]="activeCourse().id === course.id ? 'border-cyan-300/50 bg-cyan-300/10' : 'border-white/10 bg-white/5'">
+          <button *ngFor="let course of courses(); trackBy: trackByCourse" type="button" (click)="selectCourse(course.id)" class="w-full rounded-2xl border px-4 py-4 text-left transition" [ngClass]="activeCourse()?.id === course.id ? 'border-cyan-300/50 bg-cyan-300/10' : 'border-white/10 bg-white/5'">
             <div class="flex items-center justify-between gap-3">
               <div>
                 <p class="text-sm font-semibold text-white">{{ course.nombre }}</p>
@@ -54,7 +54,7 @@
             <p class="text-xs uppercase tracking-[0.35em] text-cyan-300/80">Acciones rápidas</p>
             <h3 class="mt-2 text-2xl font-semibold text-white">Pase masivo</h3>
           </div>
-          <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">{{ activeCourse().grupo }}</span>
+          <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">{{ activeCourse()?.grupo }}</span>
         </div>
 
         <div class="mt-5 grid gap-3 sm:grid-cols-2">
@@ -74,9 +74,9 @@
       <article class="rounded-[2rem] border border-white/10 bg-slate-900/75 p-6 shadow-2xl shadow-indigo-950/20 backdrop-blur-xl">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p class="text-xs uppercase tracking-[0.35em] text-cyan-300/80">{{ activeCourse().grupo }}</p>
-            <h3 class="mt-2 text-2xl font-semibold text-white">{{ activeCourse().nombre }}</h3>
-            <p class="mt-2 text-sm text-slate-400">Aula {{ activeCourse().aula }} · {{ activeCourse().horario }} · {{ activeCourse().profesor }}</p>
+            <p class="text-xs uppercase tracking-[0.35em] text-cyan-300/80">{{ activeCourse()?.grupo }}</p>
+            <h3 class="mt-2 text-2xl font-semibold text-white">{{ activeCourse()?.nombre }}</h3>
+            <p class="mt-2 text-sm text-slate-400">Aula {{ activeCourse()?.aula }} · {{ activeCourse()?.horario }} · {{ activeCourse()?.profesor }}</p>
           </div>
           <div class="grid grid-cols-4 gap-3 text-center text-sm">
             <div class="rounded-2xl border border-white/10 bg-white/5 px-3 py-2"><p class="text-slate-400">P</p><p class="text-lg font-semibold text-emerald-200">{{ activeStats().presentes }}</p></div>
@@ -86,8 +86,10 @@
           </div>
         </div>
 
-        <div class="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-slate-950/60">
-          <table class="min-w-full divide-y divide-white/10 text-left text-sm">
+        <div class="mt-6 rounded-3xl border border-white/10 bg-slate-950/60">
+          <!-- Make the student list scrollable to avoid large empty page space -->
+          <div class="max-h-[60vh] overflow-y-auto">
+            <table class="min-w-full divide-y divide-white/10 text-left text-sm">
             <thead class="bg-white/5 text-slate-300">
               <tr>
                 <th class="px-4 py-3 font-medium">Alumno</th>
@@ -107,12 +109,18 @@
                   </select>
                 </td>
                 <td class="px-4 py-4">
-                  <span class="inline-flex rounded-full border px-3 py-1 text-xs font-medium" [class]="markTone(student.estado)">{{ markLabels[student.estado] }}</span>
-                  <p class="mt-2 text-xs text-slate-400">{{ student.comentario || 'Sin comentario' }}</p>
+                  <div class="flex items-start gap-3">
+                    <span class="inline-flex rounded-full border px-3 py-1 text-xs font-medium" [class]="markTone(student.estado)">{{ markLabels[student.estado] }}</span>
+                  </div>
+                  <div class="mt-2">
+                    <input type="text" [ngModel]="student.comentario" (ngModelChange)="setComment(student.id, $event)" placeholder="Añadir comentario..." class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-300/60" />
+                    <p class="mt-2 text-xs text-slate-400">{{ student.comentario ? 'Guardado' : 'Sin comentario' }}</p>
+                  </div>
                 </td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       </article>
     </section>

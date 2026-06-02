@@ -20,3 +20,40 @@ textarea,
 select {
 	font: inherit;
 }
+
+/* Responsive and accessibility helpers */
+img, svg, video {
+	max-width: 100%;
+	height: auto;
+	display: block;
+}
+
+/* Prevent layout overflow from long words or unbroken content */
+html, body, p, span, a, li, input, button, textarea, select {
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+/* Ensure form controls don't overflow their containers in flex layouts */
+input, textarea, select, button {
+	min-width: 0;
+	max-width: 100%;
+}
+
+/* Make native select/options readable on dark themes (platform dependent) */
+select, select option {
+	color: #0f172a; /* dark text */
+	background-color: #ffffff; /* light background for contrast */
+}
+
+/* Tables should be responsive */
+table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+/* Utility: avoid fixed-height components that can overlap on small screens */
+.no-fixed-height {
+	max-height: none !important;
+	height: auto !important;
+}

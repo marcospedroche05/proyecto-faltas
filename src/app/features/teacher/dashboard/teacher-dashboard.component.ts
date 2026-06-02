@@ -45,6 +45,11 @@ export class TeacherDashboardComponent {
     this.statusMessage.set(`Se ha marcado a todo el grupo como ${attendanceMarkLabels[state].toLowerCase()}.`);
   }
 
+  setComment(studentId: number, comentario: string | null | undefined): void {
+    this.demoAttendance.setStudentComment(studentId, comentario ?? undefined);
+    this.statusMessage.set('');
+  }
+
   saveAttendance(): void {
     const count = this.demoAttendance.commitActiveCourse();
     this.statusMessage.set(

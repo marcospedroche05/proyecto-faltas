@@ -1,7 +1,7 @@
 import { Injectable, computed, signal, inject, effect } from '@angular/core';
 import { TajamarApiService } from './tajamar-api.service';
 import { AuthSessionService } from '../auth/auth-session.service';
-import { forkJoin, lastValueFrom } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import { AttendanceIncidentModel, AttendanceType as IncidentType } from '../../shared/models/attendance-incident.model';
 import { environment } from '../../../environments/environment';
 
@@ -47,10 +47,12 @@ export interface StudentSummary {
 export interface StudentDashboardData {
   nombre: string;
   email: string;
+  imagen?: string | null;
   grupo: string;
   curso: string;
   tutor: string;
   avatar: string;
+  rachaAsistencia: number;
   summary: StudentSummary;
   tendencia: StudentTrendPoint[];
   incidencias: StudentIncident[];
@@ -101,10 +103,12 @@ export class DemoAttendanceService {
   private readonly genericStudentProfile: StudentDashboardData = {
     nombre: 'Alumno Tajamar',
     email: 'alumno@tajamar365.com',
+    imagen: null,
     grupo: 'Grupo Único',
     curso: 'Cargando...',
     tutor: 'Cargando...',
     avatar: 'AT',
+    rachaAsistencia: 0,
     summary: { total: 0, faltas: 0, retrasos: 0, salidas: 0, justificadas: 0, noJustificadas: 0, asistencia: 100 },
     tendencia: [],
     incidencias: [],
@@ -180,10 +184,12 @@ export class DemoAttendanceService {
             const profile: StudentDashboardData = {
               nombre: `${s.nombre} ${s.apellidos}`,
               email: s.email,
+              imagen: s.imagen ?? null,
               grupo: 'Grupo Único',
               curso: course.nombre,
               tutor: teacher ? `${teacher.nombre} ${teacher.apellidos}` : 'Sin asignar',
               avatar: (char1 + char2).toUpperCase(),
+              rachaAsistencia: 0,
               summary: { total: 0, faltas: 0, retrasos: 0, salidas: 0, justificadas: 0, noJustificadas: 0, asistencia: 100 },
               tendencia: [],
               incidencias: [],
@@ -207,43 +213,70 @@ export class DemoAttendanceService {
   }
 
   private loadTeacherData() {
-    this.api.getTeacherCourses().subscribe({
-      next: (courses) => {
-        if (!courses || !courses.length) {
+    // Use the API that returns courses with their students for the authenticated professor
+    console.log('[DemoAttendanceService] loadTeacherData: starting request, token=', this.auth.getToken());
+    this.api.getProfesorAlumnosCursoActivoProfesor().subscribe({
+      next: (items) => {
+        console.log('[DemoAttendanceService] loadTeacherData: response items=', items);
+        if (!items || !items.length) {
           this.teacherCoursesSignal.set([]);
           return;
         }
 
-        // For each course, try to fetch students (use lastValueFrom with safe fallback)
-        const studentCalls = courses.map(async (course: any) => {
-          try {
-            const students = (await lastValueFrom(this.api.getCourseStudents(course.idcurso ?? course.id))) || [];
-            return { course, students };
-          } catch {
-            return { course, students: [] };
-          }
-        });
+        const teacherCoursesList: TeacherCourse[] = items.map((item: any) => {
+          const curso = item.curso ?? item.course ?? {};
+          const alumnosRaw = item.alumnos ?? item.alumnos ?? [];
+          const alumnos = (alumnosRaw || []).map((a: any) => {
+            const usuario = a.alumno ?? a.usuario ?? a;
+            const nombre = usuario.nombre ? `${usuario.nombre} ${usuario.apellidos ?? ''}`.trim() : (usuario.usuario || 'Alumno');
+            return { id: usuario.idUsuario ?? usuario.id ?? usuario.idUsuario ?? 0, nombre, email: usuario.email ?? usuario.usuario ?? '', estado: 'presente' } as TeacherRosterStudent;
+          });
 
-        Promise.all(studentCalls).then((results) => {
-          const teacherCoursesList: TeacherCourse[] = results.map(({ course, students }: any) => ({
-            id: course.idcurso ?? course.id,
-            nombre: course.nombre,
-            grupo: 'Grupo Único',
-            aula: `Aula ${course.idcurso ?? course.id}`,
+          return {
+            id: curso.idCurso ?? curso.idcurso ?? curso.id ?? 0,
+            nombre: curso.nombre ?? 'Curso',
+            grupo: curso.curso ?? 'Grupo Único',
+            aula: `Aula ${curso.idCurso ?? curso.idcurso ?? curso.id ?? ''}`,
             horario: 'Lunes a Viernes',
-            profesor: course.profesor ?? 'Profesor',
-            alumnos: (students || []).map((s: any) => ({ id: s.id, nombre: `${s.nombre} ${s.apellidos}`, email: s.email, estado: 'presente' })),
+            profesor: this.auth.session()?.userName ?? 'Profesor',
+            alumnos,
             historial: []
-          }));
-
-          this.teacherCoursesSignal.set(teacherCoursesList);
-          this.activeCourseId.set(teacherCoursesList.length ? teacherCoursesList[0].id : this.activeCourseId());
+          } as TeacherCourse;
         });
+
+        // Build student profiles map so student view shows the correct tutor
+        const newStudentProfiles = new Map<string, StudentDashboardData>();
+        for (const courseEntry of teacherCoursesList) {
+          const tutorName = courseEntry.profesor ?? 'Sin asignar';
+          for (const s of courseEntry.alumnos) {
+            const names = s.nombre.split(' ');
+            const char1 = names[0] ? names[0].charAt(0) : 'A';
+            const char2 = names[1] ? names[1].charAt(0) : 'T';
+            const profile: StudentDashboardData = {
+              nombre: s.nombre,
+              email: s.email,
+              imagen: usuario.imagen ?? null,
+              grupo: courseEntry.grupo,
+              curso: courseEntry.nombre,
+              tutor: typeof tutorName === 'string' ? tutorName : 'Sin asignar',
+              avatar: (char1 + char2).toUpperCase(),
+              rachaAsistencia: 0,
+              summary: { total: 0, faltas: 0, retrasos: 0, salidas: 0, justificadas: 0, noJustificadas: 0, asistencia: 100 },
+              tendencia: [],
+              incidencias: [],
+              insights: []
+            };
+            newStudentProfiles.set((s.email ?? '').trim().toLowerCase(), profile);
+          }
+        }
+
+        this.teacherCoursesSignal.set(teacherCoursesList);
+        this.studentProfilesSignal.set(newStudentProfiles);
+        this.activeCourseId.set(teacherCoursesList.length ? teacherCoursesList[0].id : this.activeCourseId());
       },
       error: (err) => {
         console.error('Error loading teacher courses', err);
         if (!environment.production) {
-          // Fallback demo course for local development when backend rejects the token
           const demoCourse: TeacherCourse = {
             id: 1,
             nombre: 'Curso Demo',
@@ -267,8 +300,60 @@ export class DemoAttendanceService {
   }
 
   private loadStudentData() {
-    // Student-specific data is derived on demand from the studentProfilesSignal; keep default behavior
-    this.studentProfilesSignal.set(new Map());
+    const normalizedUserName = (this.auth.session()?.userName ?? '').trim().toLowerCase();
+    if (!normalizedUserName) {
+      this.studentProfilesSignal.set(new Map());
+      return;
+    }
+
+    forkJoin({
+      users: this.api.getUsers(),
+      courses: this.api.getCourses(),
+      cursosUsuarios: this.api.getCursosUsuarios()
+    }).subscribe({
+      next: ({ users, courses, cursosUsuarios }) => {
+        const currentUser = this.resolveCurrentUser(users, normalizedUserName);
+        if (!currentUser) {
+          this.studentProfilesSignal.set(new Map([[normalizedUserName, this.genericStudentProfile]]));
+          return;
+        }
+
+        const relatedCourseIds = cursosUsuarios
+          .filter((item: any) => item.idUsuario === currentUser.id)
+          .map((item: any) => item.idCurso);
+
+        const relatedCourses = courses.filter((course) => relatedCourseIds.includes(course.idcurso));
+        if (!relatedCourses.length) {
+          const fallbackProfile = this.buildStudentProfile(currentUser, null, null, []);
+          this.studentProfilesSignal.set(new Map([[currentUser.email.trim().toLowerCase(), fallbackProfile]]));
+          return;
+        }
+
+        forkJoin(
+          relatedCourses.map((course) =>
+            this.api.getIncidenciasByCurso(course.idcurso).pipe(catchError(() => of([])))
+          )
+        ).subscribe({
+          next: (courseIncidences) => {
+            const currentCourse = relatedCourses[0];
+            const currentIncidences = this.extractStudentIncidences(currentUser.id, courseIncidences.flat());
+            const teacher = this.resolveCourseTeacher(users, cursosUsuarios, currentCourse.idcurso);
+            const profile = this.buildStudentProfile(currentUser, currentCourse, teacher, currentIncidences);
+
+            this.studentProfilesSignal.set(new Map([[currentUser.email.trim().toLowerCase(), profile]]));
+          },
+          error: (err) => {
+            console.error('Error loading student incidences', err);
+            const fallbackProfile = this.buildStudentProfile(currentUser, relatedCourses[0] ?? null, null, []);
+            this.studentProfilesSignal.set(new Map([[currentUser.email.trim().toLowerCase(), fallbackProfile]]));
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Error loading student data', err);
+        this.studentProfilesSignal.set(new Map([[normalizedUserName, this.genericStudentProfile]]));
+      }
+    });
   }
 
   getStudentDashboard(userName?: string | null): StudentDashboardData {
@@ -319,6 +404,19 @@ export class DemoAttendanceService {
         alumnos: course.alumnos.map((student) =>
           student.id === studentId
             ? { ...student, estado, comentario: estado === 'presente' ? undefined : student.comentario ?? `Marcar como ${attendanceMarkLabels[estado].toLowerCase()}` }
+            : student
+        )
+      }))
+    );
+  }
+
+  setStudentComment(studentId: number, comentario?: string | null): void {
+    this.teacherCoursesSignal.update((courses) =>
+      courses.map((course) => ({
+        ...course,
+        alumnos: course.alumnos.map((student) =>
+          student.id === studentId
+            ? { ...student, comentario: comentario && comentario.trim() ? comentario : undefined }
             : student
         )
       }))
@@ -443,5 +541,143 @@ export class DemoAttendanceService {
       incidencias: profile.incidencias.map((incident) => ({ ...incident })),
       insights: [...profile.insights]
     };
+  }
+
+  private resolveCurrentUser(users: any[], normalizedUserName: string): any | null {
+    return users.find((user: any) => {
+      const candidates = [user.email, user.usuario, `${user.nombre ?? ''} ${user.apellidos ?? ''}`.trim()];
+      return candidates.some((candidate) => (candidate ?? '').trim().toLowerCase() === normalizedUserName);
+    }) ?? null;
+  }
+
+  private resolveCourseTeacher(users: any[], cursosUsuarios: any[], courseId: number): any | null {
+    return users.find((user: any) =>
+      user.idrole === 1 && cursosUsuarios.some((item: any) => item.idCurso === courseId && item.idUsuario === user.id)
+    ) ?? null;
+  }
+
+  private buildStudentProfile(user: any, course: any | null, teacher: any | null, incidencias: StudentIncident[]): StudentDashboardData {
+    const fullName = `${user.nombre ?? ''} ${user.apellidos ?? ''}`.trim() || user.email || user.usuario || 'Alumno';
+    const email = (user.email ?? user.usuario ?? '').trim();
+    const courseName = course?.nombre ?? course?.curso ?? 'Sin curso asignado';
+    const groupName = course?.curso ?? 'Grupo Único';
+    const tutorName = teacher ? `${teacher.nombre ?? ''} ${teacher.apellidos ?? ''}`.trim() : 'Sin asignar';
+    const image = user.imagen ?? null;
+    const avatar = this.buildAvatar(fullName, email);
+    const summary = this.buildSummary(incidencias);
+    const tendencia = this.buildTrend(incidencias);
+    const rachaAsistencia = this.calculateAttendanceStreak(incidencias, course?.fechaInicio ?? course?.fechaInicioCurso ?? null);
+
+    return {
+      nombre: fullName,
+      email,
+      imagen: image,
+      grupo: groupName,
+      curso: courseName,
+      tutor: tutorName,
+      avatar,
+      rachaAsistencia,
+      summary,
+      tendencia,
+      incidencias: incidencias.map((incident) => ({ ...incident })),
+      insights: incidencias.length
+        ? ['Revisa tu historial de incidencias y tu racha de asistencia.', 'Los comentarios y justificantes quedan reflejados en tu perfil.']
+        : ['No hay incidencias registradas en este momento.', 'Tu perfil está al día.']
+    };
+  }
+
+  private buildSummary(incidencias: StudentIncident[]): StudentSummary {
+    const faltas = incidencias.filter((inc) => inc.tipo === 'Falta').length;
+    const retrasos = incidencias.filter((inc) => inc.tipo === 'Retraso').length;
+    const salidas = incidencias.filter((inc) => inc.tipo === 'Salida de antes').length;
+    const justificadas = incidencias.filter((inc) => inc.justificada).length;
+    const noJustificadas = incidencias.length - justificadas;
+    const total = incidencias.length;
+    const asistencia = Math.max(0, 100 - faltas * 3 - retrasos * 1 - salidas * 2);
+
+    return { total, faltas, retrasos, salidas, justificadas, noJustificadas, asistencia };
+  }
+
+  private buildTrend(incidencias: StudentIncident[]): StudentTrendPoint[] {
+    const labels = ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'];
+    const buckets = [0, 0, 0, 0];
+    const sorted = [...incidencias].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+
+    sorted.forEach((incident, index) => {
+      const bucketIndex = Math.min(3, Math.floor((index / Math.max(sorted.length, 1)) * 4));
+      buckets[bucketIndex] += incident.justificada ? 0 : 1;
+    });
+
+    return labels.map((label, index) => ({ label, value: buckets[index] }));
+  }
+
+  private calculateAttendanceStreak(incidencias: StudentIncident[], courseStart?: string | null): number {
+    const startDate = courseStart ? new Date(courseStart) : new Date('2025-10-01T00:00:00');
+    const absences = new Set(
+      incidencias
+        .filter((incident) => !incident.justificada)
+        .map((incident) => this.dateKey(new Date(incident.fecha)))
+    );
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let cursor = new Date(today);
+    let streak = 0;
+
+    while (cursor >= startDate) {
+      if (this.isWeekday(cursor) && absences.has(this.dateKey(cursor))) {
+        break;
+      }
+
+      if (this.isWeekday(cursor)) {
+        streak++;
+      }
+
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    return streak;
+  }
+
+  private buildAvatar(fullName: string, email: string): string {
+    const nameParts = fullName.split(' ').filter(Boolean);
+    const first = nameParts[0]?.charAt(0) ?? email.charAt(0) ?? 'A';
+    const second = nameParts[1]?.charAt(0) ?? nameParts[0]?.charAt(1) ?? 'T';
+    return `${first}${second}`.toUpperCase();
+  }
+
+  private dateKey(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  private isWeekday(date: Date): boolean {
+    const day = date.getDay();
+    return day >= 1 && day <= 5;
+  }
+
+  private extractStudentIncidences(userId: number, incidenciasRaw: any[]): StudentIncident[] {
+    return incidenciasRaw
+      .filter((incident: any) => this.resolveIncidentUserId(incident) === userId)
+      .map((incident: any, index: number) => ({
+        id: Number(incident.id ?? incident.Id ?? `${userId}${index}`),
+        fecha: incident.fechaIncidencia ?? incident.fecha ?? incident.date ?? new Date().toISOString(),
+        tipo: incident.tipoFalta ?? incident.tipo ?? 'Falta',
+        justificada: Boolean(incident.esJustificada ?? incident.EsJustificada ?? false),
+        comentario: incident.comentario ?? incident.Comentario ?? '',
+        idAlumno: userId
+      }));
+  }
+
+  private resolveIncidentUserId(incident: any): number | null {
+    const candidates = [incident.idUsuario, incident.IdUsuario, incident.alumno?.idUsuario, incident.alumno?.id, incident.usuario?.id];
+    for (const candidate of candidates) {
+      const parsed = Number(candidate);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+
+    return null;
   }
 }

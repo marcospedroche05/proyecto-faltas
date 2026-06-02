@@ -8,39 +8,14 @@ import { UserModel } from '../../shared/models/user.model';
 import { catchError, of, throwError } from 'rxjs';
 import { AttendanceIncidentModel } from '../../shared/models/attendance-incident.model';
 
-// Demo accounts to allow local testing when backend rejects credentials
-const DEMO_USERS: Record<string, { idrole: number; role: string }> = {
-  'marcos.pedroche@tajamar365.com': { idrole: 2, role: 'student' },
-  'profesortest@tajamar365.com': { idrole: 1, role: 'teacher' },
-  'admin@tajamar365.com': { idrole: 3, role: 'admin' }
-};
 
 @Injectable({ providedIn: 'root' })
 export class TajamarApiService {
   private readonly http = inject(HttpClient);
 
   login(credentials: { userName: string; password: string }) {
-    return this.http.post<LoginResponse>(`${environment.apiBaseUrl}${environment.authEndpoint}`, credentials)
-      .pipe(
-        catchError((err) => {
-          // If backend rejects (401) and we're in development, allow demo accounts with a fabricated token
-          if (!environment.production && err && err.status === 401) {
-            const demo = DEMO_USERS[credentials.userName?.trim().toLowerCase() ?? ''];
-            if (demo) {
-              try {
-                const payload = { idrole: demo.idrole };
-                const token = `fake.${btoa(JSON.stringify(payload))}.sig`;
-                const response: LoginResponse = { response: token, role: demo.role, idrole: demo.idrole };
-                return of(response);
-              } catch {
-                // fallthrough to original error
-              }
-            }
-          }
-
-          return throwError(() => err);
-        })
-      );
+    // Use backend response directly. Demo fallback removed to force real API usage.
+    return this.http.post<LoginResponse>(`${environment.apiBaseUrl}${environment.authEndpoint}`, credentials);
   }
 
   postIncidents(incidents: AttendanceIncidentModel[]) {
@@ -68,7 +43,24 @@ export class TajamarApiService {
     return this.http.get<CourseModel[]>(`${environment.apiBaseUrl}/api/Profesor/CursosActivosProfesor`);
   }
 
+  /** Returns courses with their enrolled students for the authenticated professor */
+  getProfesorAlumnosCursoActivoProfesor() {
+    return this.http.get<any[]>(`${environment.apiBaseUrl}/api/Profesor/AlumnosCursoActivoProfesor`);
+  }
+
   getCursosUsuarios() {
     return this.http.get<{ id: number; idUsuario: number; idCurso: number }[]>(`${environment.apiBaseUrl}/api/CursosUsuarios`);
+  }
+
+  /** Get incidences for a course */
+  getIncidenciasByCurso(courseId: number) {
+    return this.http.get<any[]>(`${environment.apiBaseUrl}/api/Incidencias/Curso/${courseId}`);
+  }
+
+  /** Update an incidencia (patch) */
+  updateIncidencia(incidenciaId: number, payload: any) {
+    return this.http.put(`${environment.apiBaseUrl}/api/Incidencias/${incidenciaId}`, payload).pipe(
+      catchError((err) => throwError(() => err))
+    );
   }
 }
