@@ -8,11 +8,7 @@ import { UserModel } from '../../shared/models/user.model';
 export class UsersService {
   private readonly http = inject(HttpClient);
 
-  getUsers(): Observable<UserModel[]> {
-    return this.http.get<UserModel[]>(`${environment.apiBaseUrl}${environment.usersEndpoint}`);
-  }
-
   getUserById(id: number): Observable<UserModel> {
-    return this.http.get<UserModel>(`${environment.apiBaseUrl}${environment.usersEndpoint}/${id}`);
+    return this.http.get<UserModel>(`${environment.apiBaseUrl}/api/usuarios/${id}`);
   }
 }

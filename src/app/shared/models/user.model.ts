@@ -3,8 +3,6 @@ export interface UserModel {
   nombre: string;
   apellidos: string;
   email: string;
+  role: string;
   estadoUsuario: boolean;
-  imagen?: string | null;
-  password?: string;
-  idrole: number;
 }

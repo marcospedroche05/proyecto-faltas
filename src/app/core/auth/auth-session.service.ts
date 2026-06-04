@@ -1,63 +1,58 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-import { AuthSession, JwtPayload } from '../../shared/models/auth.model';
+import { AuthSession, LoginUserDto } from '../../shared/models/auth.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthSessionService {
   private readonly tokenKey = 'tajamar.jwt';
-  private readonly roleIdKey = 'tajamar.roleId';
-  private readonly userNameKey = 'tajamar.userName';
+  private readonly userKey = 'tajamar.user';
   private readonly sessionSignal = signal<AuthSession | null>(this.restoreSession());
 
   readonly session = computed(() => this.sessionSignal());
   readonly isAuthenticated = computed(() => Boolean(this.sessionSignal()));
 
-  setToken(token: string | null | undefined, roleId: number | null | undefined = null, userName: string | null | undefined = null): void {
-    if (!token) {
-      this.clear();
-      return;
-    }
-
-    const payload = this.decodePayload(token);
-    const session = {
-      token,
-      roleId: roleId ?? this.getRoleIdFromPayload(payload) ?? 0,
-      userName: userName?.trim() || this.decodeStoredUserName() || 'Usuario',
-      payload
-    };
-
+  setSession(token: string, user: LoginUserDto): void {
+    const session: AuthSession = { token, user };
     this.sessionSignal.set(session);
     sessionStorage.setItem(this.tokenKey, token);
-    sessionStorage.setItem(this.roleIdKey, String(session.roleId));
-    sessionStorage.setItem(this.userNameKey, session.userName);
+    sessionStorage.setItem(this.userKey, JSON.stringify(user));
   }
 
   clear(): void {
     this.sessionSignal.set(null);
     sessionStorage.removeItem(this.tokenKey);
-    sessionStorage.removeItem(this.roleIdKey);
-    sessionStorage.removeItem(this.userNameKey);
+    sessionStorage.removeItem(this.userKey);
   }
 
   getToken(): string | null {
     return this.sessionSignal()?.token ?? sessionStorage.getItem(this.tokenKey);
   }
 
-  getRoleId(): number | null {
-    return this.sessionSignal()?.roleId ?? this.decodeStoredRoleId() ?? this.getRoleIdFromPayload(this.sessionSignal()?.payload ?? this.decodeStoredPayload()) ?? null;
+  getUser(): LoginUserDto | null {
+    return this.sessionSignal()?.user ?? this.restoreUser();
   }
 
-  getUserName(): string | null {
-    return this.sessionSignal()?.userName ?? this.decodeStoredUserName();
+  getRole(): string | null {
+    return this.getUser()?.role ?? null;
   }
 
-  redirectPathForRole(roleId: number | null): string {
-    switch (roleId) {
-      case 1:
+  getUserId(): number | null {
+    return this.getUser()?.id ?? null;
+  }
+
+  getUserDisplayName(): string {
+    const user = this.getUser();
+    if (!user) return 'Invitado';
+    return `${user.nombre} ${user.apellidos}`.trim() || user.email;
+  }
+
+  redirectPathForRole(role: string | null): string {
+    switch (role) {
+      case 'Profesor':
         return '/teacher';
-      case 2:
+      case 'Alumno':
         return '/student';
-      case 3:
+      case 'Administrador':
         return '/admin';
       default:
         return '/login';
@@ -66,59 +61,18 @@ export class AuthSessionService {
 
   private restoreSession(): AuthSession | null {
     const token = sessionStorage.getItem(this.tokenKey);
-    if (!token) {
-      return null;
-    }
-
-    return {
-      token,
-      roleId: this.decodeStoredRoleId() ?? this.getRoleIdFromPayload(this.decodePayload(token)) ?? 0,
-      userName: this.decodeStoredUserName() || 'Usuario',
-      payload: this.decodePayload(token)
-    };
+    const user = this.restoreUser();
+    if (!token || !user) return null;
+    return { token, user };
   }
 
-  private decodeStoredPayload(): JwtPayload | null {
-    const token = sessionStorage.getItem(this.tokenKey);
-    return token ? this.decodePayload(token) : null;
-  }
-
-  private decodeStoredRoleId(): number | null {
-    const storedRoleId = sessionStorage.getItem(this.roleIdKey);
-    if (storedRoleId === null) {
-      return null;
-    }
-
-    const parsed = Number(storedRoleId);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  private getRoleIdFromPayload(payload: JwtPayload | null): number | null {
-    return payload?.idrole && payload.idrole > 0 ? payload.idrole : null;
-  }
-
-  private decodeStoredUserName(): string | null {
-    const storedUserName = sessionStorage.getItem(this.userNameKey);
-    return storedUserName && storedUserName.trim() ? storedUserName : null;
-  }
-
-  private decodePayload(token: string | null | undefined): JwtPayload {
-    if (!token) {
-      return { idrole: 0 };
-    }
-
-    const rawPayload = token.split('.')[1];
-    if (!rawPayload) {
-      return { idrole: 0 };
-    }
-
-    const normalized = rawPayload.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
-
+  private restoreUser(): LoginUserDto | null {
+    const raw = sessionStorage.getItem(this.userKey);
+    if (!raw) return null;
     try {
-      return JSON.parse(atob(padded)) as JwtPayload;
+      return JSON.parse(raw) as LoginUserDto;
     } catch {
-      return { idrole: 0 };
+      return null;
     }
   }
 }

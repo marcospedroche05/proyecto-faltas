@@ -1,10 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 
-import { DemoAttendanceService } from '../../../core/services/demo-attendance.service';
-import { TajamarApiService } from '../../../core/services/tajamar-api.service';
-
+import { AdminApiService } from '../../../core/services/admin-api.service';
+import { NotificationService } from '../../../core/services/notification.service';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+import { CourseModel } from '../../../shared/models/course.model';
+import { AdminFaltaModel } from '../../../shared/models/attendance-incident.model';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -13,45 +16,86 @@ import { TajamarApiService } from '../../../core/services/tajamar-api.service';
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
 })
-export class AdminDashboardComponent {
-  private readonly demoAttendance = inject(DemoAttendanceService);
-  private readonly api = inject(TajamarApiService);
+export class AdminDashboardComponent implements OnInit {
+  private readonly adminApi = inject(AdminApiService);
+  private readonly notify = inject(NotificationService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
-  readonly snapshot = computed(() => this.demoAttendance.getAdminSnapshot());
-  readonly pendingJustifications = computed(() => this.demoAttendance.getPendingJustifications().slice(0, 6));
-
-  readonly courses = signal<any[]>([]);
+  readonly courses = signal<CourseModel[]>([]);
+  readonly allFaltas = signal<AdminFaltaModel[]>([]);
   readonly selectedCourseId = signal<number | null>(null);
-  readonly incidencias = signal<any[]>([]);
+  readonly courseFaltas = signal<AdminFaltaModel[]>([]);
+  readonly loading = signal(false);
 
-  constructor() {
-    // load available courses for admin
-    this.api.getCourses().subscribe({ next: (cs) => this.courses.set(cs || []) , error: () => this.courses.set([]) });
-  }
+  readonly snapshot = computed(() => {
+    const faltas = this.allFaltas();
+    return {
+      totalCursos: this.courses().length,
+      totalFaltas: faltas.length,
+      justificadas: faltas.filter(f => f.esJustificada).length,
+      pendientes: faltas.filter(f => !f.esJustificada).length
+    };
+  });
 
-  selectCourse(courseId: number | null) {
-    this.selectedCourseId.set(courseId);
-    this.incidencias.set([]);
-    if (!courseId) return;
-    this.api.getIncidenciasByCurso(courseId).subscribe({
-      next: (items) => this.incidencias.set(items || []),
-      error: (err) => {
-        console.error('Error loading incidencias for course', err);
-        this.incidencias.set([]);
+  readonly pendingJustifications = computed(() =>
+    this.allFaltas().filter(f => !f.esJustificada).slice(0, 6)
+  );
+
+  ngOnInit(): void {
+    this.loading.set(true);
+    forkJoin({ cursos: this.adminApi.getCursos(), faltas: this.adminApi.getAllFaltas() }).subscribe({
+      next: ({ cursos, faltas }) => {
+        this.courses.set(cursos);
+        this.allFaltas.set(faltas);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
       }
     });
   }
 
-  toggleJustificada(inc: any) {
-    const newVal = !inc.esJustificada && inc.esJustificada !== true ? true : !inc.esJustificada;
-    this.api.updateIncidencia(inc.id, { EsJustificada: newVal }).subscribe({
-      next: () => {
-        // update local view
-        this.incidencias.update((list) => list.map(i => i.id === inc.id ? { ...i, esJustificada: newVal } : i));
-      },
-      error: (err) => console.error('Error updating incidencia', err)
+  selectCourse(courseId: number | null): void {
+    this.selectedCourseId.set(courseId);
+    this.courseFaltas.set([]);
+    if (!courseId) return;
+
+    this.adminApi.getFaltasDeCurso(courseId).subscribe({
+      next: (items) => this.courseFaltas.set(items),
+      error: () => this.courseFaltas.set([])
     });
   }
 
-  trackByIncidente = (_: number, inc: any) => inc.id;
+  toggleJustificada(falta: AdminFaltaModel): void {
+    const newVal = !falta.esJustificada;
+    this.adminApi.updateJustificacion(falta.id, newVal).subscribe({
+      next: () => {
+        this.courseFaltas.update(list => list.map(f => f.id === falta.id ? { ...f, esJustificada: newVal } : f));
+        this.allFaltas.update(list => list.map(f => f.id === falta.id ? { ...f, esJustificada: newVal } : f));
+        this.notify.success(`Falta #${falta.id} ${newVal ? 'justificada' : 'marcada como no justificada'}.`);
+      },
+      error: () => this.notify.error('Error al actualizar la justificacion.')
+    });
+  }
+
+  requestDeleteFalta(id: number): void {
+    this.confirmDialog.open(
+      '¿Eliminar esta incidencia? La acción no se puede deshacer.',
+      () => this.deleteFalta(id)
+    );
+  }
+
+  deleteFalta(id: number): void {
+    this.adminApi.eliminarFalta(id).subscribe({
+      next: () => {
+        this.courseFaltas.update(list => list.filter(f => f.id !== id));
+        this.allFaltas.update(list => list.filter(f => f.id !== id));
+        this.notify.success('Incidencia eliminada.');
+      },
+      error: () => this.notify.error('Error al eliminar la incidencia.')
+    });
+  }
+
+  trackByFalta = (_: number, falta: AdminFaltaModel) => falta.id;
+  trackByCourse = (_: number, course: CourseModel) => course.idCurso;
 }

@@ -1,0 +1,30 @@
+<div *ngIf="isOpen()" class="fixed inset-0 z-50 flex items-center justify-center">
+  <!-- Backdrop -->
+  <div
+    class="absolute inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm"
+    (click)="close()"
+  ></div>
+
+  <!-- Panel -->
+  <div class="relative rounded-[2rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/90 shadow-2xl p-8 max-w-sm w-full mx-4" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <h2 id="confirm-title" class="text-xl font-semibold text-slate-900 dark:text-white">¿Confirmar eliminación?</h2>
+    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ message() }}</p>
+
+    <div class="mt-8 flex gap-3 justify-end">
+      <button
+        type="button"
+        class="rounded-2xl border border-slate-200 bg-slate-100 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 px-5 py-2.5 text-sm transition hover:bg-white/10"
+        (click)="close()"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-600"
+        (click)="confirm()"
+      >
+        Eliminar
+      </button>
+    </div>
+  </div>
+</div>

@@ -3,11 +3,19 @@ body {
 	min-height: 100%;
 	margin: 0;
 	background:
+		radial-gradient(circle at top left, rgba(34, 211, 238, 0.06), transparent 28%),
+		radial-gradient(circle at top right, rgba(99, 102, 241, 0.06), transparent 26%),
+		#f8fafc;
+	color: #0f172a;
+	font-family: 'Manrope', sans-serif;
+}
+
+html.dark, html.dark body {
+	background:
 		radial-gradient(circle at top left, rgba(34, 211, 238, 0.08), transparent 28%),
 		radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 26%),
 		#020617;
 	color: #f8fafc;
-	font-family: 'Manrope', sans-serif;
 }
 
 * {

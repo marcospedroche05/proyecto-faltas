@@ -1,6 +1,6 @@
 export interface CourseModel {
-  idcurso: number;
+  idCurso: number;
   nombre: string;
-  duracion: number;
-  activo: boolean;
+  duracionHoras: number;
+  activo?: boolean;
 }

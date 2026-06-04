@@ -1,0 +1,26 @@
+<div class="fixed bottom-6 right-6 z-50 flex flex-col gap-2" role="region" aria-label="Notificaciones" aria-live="polite">
+  <div
+    *ngFor="let notification of notifications(); trackBy: trackByNotification"
+    class="flex max-w-sm items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-xl backdrop-blur-sm"
+    [class]="notification.type === 'success' ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-100'
+           : notification.type === 'error'   ? 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-100'
+           :                                   'border-cyan-300 bg-cyan-50 text-cyan-800 dark:border-cyan-400/30 dark:bg-cyan-400/10 dark:text-cyan-100'"
+  >
+    <span class="mt-0.5 shrink-0 text-base leading-none">
+      <ng-container *ngIf="notification.type === 'success'">&#10003;</ng-container>
+      <ng-container *ngIf="notification.type === 'error'">&#10005;</ng-container>
+      <ng-container *ngIf="notification.type === 'info'">&#8505;</ng-container>
+    </span>
+
+    <span class="flex-1 leading-snug">{{ notification.message }}</span>
+
+    <button
+      type="button"
+      class="ml-auto shrink-0 opacity-60 transition hover:opacity-100 text-slate-600 dark:text-inherit"
+      (click)="dismiss(notification.id)"
+      aria-label="Cerrar notificación"
+    >
+      &#10005;
+    </button>
+  </div>
+</div>

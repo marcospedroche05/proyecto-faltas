@@ -3,16 +3,16 @@ import { CanActivateFn, Router } from '@angular/router';
 
 import { AuthSessionService } from '../auth/auth-session.service';
 
-export const roleGuard = (allowedRoles: number[]): CanActivateFn => {
+export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
   return () => {
     const authSession = inject(AuthSessionService);
     const router = inject(Router);
-    const roleId = authSession.getRoleId();
+    const role = authSession.getRole();
 
-    if (roleId && allowedRoles.includes(roleId)) {
+    if (role && allowedRoles.includes(role)) {
       return true;
     }
 
-    return router.createUrlTree([authSession.redirectPathForRole(roleId)]);
+    return router.createUrlTree([authSession.redirectPathForRole(role)]);
   };
 };

@@ -1,20 +1,23 @@
-export interface JwtPayload {
-  id?: string;
-  sub?: string;
-  email?: string;
-  idrole: number;
-  exp?: number;
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginUserDto {
+  id: number;
+  nombre: string;
+  apellidos: string;
+  email: string;
+  role: string;
 }
 
 export interface LoginResponse {
-  response: string;
-  role: string;
-  idrole: number;
+  accessToken: string;
+  expiresIn: number;
+  user: LoginUserDto;
 }
 
 export interface AuthSession {
   token: string;
-  roleId: number;
-  userName: string;
-  payload: JwtPayload;
+  user: LoginUserDto;
 }

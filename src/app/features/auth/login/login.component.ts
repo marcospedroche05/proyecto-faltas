@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { TajamarApiService } from '../../../core/services/tajamar-api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
 
 @Component({
@@ -14,26 +14,25 @@ import { AuthSessionService } from '../../../core/auth/auth-session.service';
   styleUrl: './login.component.scss'
 })
 export class LoginComponent {
-  userName = '';
+  email = '';
   password = '';
   errorMessage = '';
 
   constructor(
-    private readonly api: TajamarApiService,
+    private readonly authService: AuthService,
     private readonly authSession: AuthSessionService,
     private readonly router: Router
   ) {}
 
   submit(): void {
     this.errorMessage = '';
-    this.api.login({ userName: this.userName, password: this.password }).subscribe({
-      next: (session) => {
-        this.authSession.setToken(session.response, session.idrole, this.userName);
-        const roleId = session.idrole ?? this.authSession.getRoleId();
-        this.router.navigateByUrl(this.authSession.redirectPathForRole(roleId ?? null));
+    this.authService.login({ email: this.email, password: this.password }).subscribe({
+      next: (response) => {
+        this.authSession.setSession(response.accessToken, response.user);
+        this.router.navigateByUrl(this.authSession.redirectPathForRole(response.user.role));
       },
       error: () => {
-        this.errorMessage = 'No se ha podido iniciar sesión.';
+        this.errorMessage = 'Credenciales incorrectas o usuario inactivo.';
       }
     });
   }
