@@ -18,30 +18,41 @@ Todos los servicios usan `inject(HttpClient)` y construyen URLs desde `environme
 
 ## TeacherApiService
 
+Endpoints reales de la API externa (`environment.apiBaseUrl`):
+
 | Metodo | HTTP | Endpoint | Request/Response |
 |---|---|---|---|
-| `getMisCursos()` | GET | `/api/profesor/cursos` | `CourseModel[]` |
-| `getAlumnosDeCurso(id)` | GET | `/api/profesor/cursos/{id}/alumnos` | `AlumnoModel[]` |
-| `getFaltasDeCurso(id)` | GET | `/api/profesor/cursos/{id}/faltas` | `AttendanceIncidentModel[]` |
-| `crearFalta(request)` | POST | `/api/profesor/faltas` | `CreateFaltaRequest` → `AttendanceIncidentModel` |
-| `eliminarFalta(id)` | DELETE | `/api/profesor/faltas/{id}` | `void` |
+| `getCursosConAlumnos()` | GET | `/api/Profesor/AlumnosCursoActivoProfesor` | `CursosProfesorAlumnosModel[]` (curso + alumnos anidados) |
+| `getAlumnosCursoRandom()` | GET | `/api/Profesor/AlumnosCursoActivoProfesorRandom` | `VistaUsuarioCursoModel[]` (lista plana, incluye `idCursosUsuarios` correcto por alumno) |
+| `getMisCursos()` | — | derivado de `getCursosConAlumnos()` | `CourseModel[]` |
+| `getFaltasDeCurso(idCurso)` | GET | `/api/FaltasAlumno/FaltasCurso` | `AttendanceIncidentModel[]` (scopeado por JWT del profesor; no usa `idCurso`) |
+| `crearFalta(request)` | POST | `/api/FaltasAlumno/CreateFaltaAlumno` | `CreateFaltaRequest` → `void` |
+| `eliminarFalta(id)` | DELETE | `/api/FaltasAlumno/DeleteFaltaAlumno?idfalta={id}` | `void` |
 
 ### CreateFaltaRequest
 
 ```typescript
-{ idUsuario, idCurso, fechaIncidencia (ISO string), tipoFalta, comentario? }
+{ idCursosUsuarios, idCurso, fechaIncidencia (ISO string), tipoFalta, comentario? }
 ```
+
+**⚠️ Quirk confirmado de la API**: el endpoint `CreateFaltaAlumno` espera un body con el campo `idUsuario` (segun su esquema Swagger), pero internamente lo resuelve como `idCursosUsuarios` (el id de matricula del alumno en el curso, NO su `idUsuario` real). Por eso `crearFalta()` envia `idUsuario: request.idCursosUsuarios` en el body — el nombre del campo se mantiene (`idUsuario`) pero el valor es el `idCursosUsuarios` del alumno, obtenido de `getAlumnosCursoRandom()`. Enviar el `idUsuario` real provoca que la falta se asigne a otro alumno.
 
 ## AdminApiService
 
+Endpoints reales de la API externa (`environment.apiBaseUrl`):
+
 | Metodo | HTTP | Endpoint | Request/Response |
 |---|---|---|---|
-| `getCursos()` | GET | `/api/admin/cursos` | `CourseModel[]` |
-| `getAlumnosDeCurso(id)` | GET | `/api/admin/cursos/{id}/alumnos` | `AlumnoModel[]` |
-| `getFaltasDeCurso(id)` | GET | `/api/admin/cursos/{id}/faltas` | `AdminFaltaModel[]` |
-| `getAllFaltas()` | GET | `/api/admin/faltas` | `AdminFaltaModel[]` |
-| `updateJustificacion(id, val)` | PATCH | `/api/admin/faltas/{id}/justificacion` | `{ esJustificada: boolean }` → `void` |
-| `eliminarFalta(id)` | DELETE | `/api/admin/faltas/{id}` | `void` |
+| `getCursos()` | GET | `/api/Cursos` | `CourseModel[]` |
+| `getAlumnosDeCurso(idCurso)` | GET | `/api/Admin/UsuariosActivos` | `AlumnoModel[]` (filtrado en cliente por `idCurso` y `idRole === 2`) |
+| `getFaltasDeCurso(idCurso)` | GET | `/api/FaltasAlumno/FaltasCursoAdmin?idCurso={idCurso}` | `AdminFaltaModel[]` |
+| `getAllFaltas()` | GET | `/api/FaltasAlumno/FaltasCurso` | `AdminFaltaModel[]` |
+| `updateJustificacion(id, val)` | PUT | `/api/FaltasAlumno/UpdateJustificacionFalta?idfalta={id}&esjustificada={val}` | `void` |
+| `eliminarFalta(id)` | DELETE | `/api/FaltasAlumno/DeleteFaltaAlumnoAdmin?idfalta={id}` | `void` |
+
+**Nota — `getFaltasDeCurso` y `eliminarFalta` (admin)**: usan los endpoints especificos `FaltasCursoAdmin` (acepta `idCurso` por query) y `DeleteFaltaAlumnoAdmin`, implementados por el backend para el rol Administrador. Antes de su existencia, ambos metodos llamaban a `/api/FaltasAlumno/FaltasCurso` / `/api/FaltasAlumno/DeleteFaltaAlumno` (variantes scopeadas al profesor via JWT), lo que provocaba que el desplegable de cursos del dashboard de admin no cargara incidencias.
+
+**Limitacion conocida — `getAllFaltas()`**: sigue llamando a `/api/FaltasAlumno/FaltasCurso` (scopeado al profesor), por lo que probablemente devuelve vacio para un admin. Esto afecta a las tarjetas de resumen (`snapshot()`) y al panel "Incidencias no justificadas" en el dashboard de admin, que dependen de `allFaltas`. Pendiente: el backend deberia exponer un endpoint equivalente a `FaltasCursoAdmin` pero para todas las incidencias (sin filtrar por curso).
 
 ## UsersService
 

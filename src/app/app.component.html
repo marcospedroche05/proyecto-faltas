@@ -14,13 +14,32 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
-        <a *ngIf="!isAuthenticated()" routerLink="/login" routerLinkActive="bg-white text-slate-950" class="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-700 transition hover:border-cyan-300/50 hover:bg-slate-100 dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/5">Login</a>
-        <a *ngIf="isAuthenticated()" [routerLink]="dashboardPath()" routerLinkActive="bg-cyan-300/20 text-cyan-300" class="rounded-full border border-cyan-400/40 px-4 py-2 text-sm text-cyan-600 transition hover:border-cyan-300/50 hover:bg-slate-100 dark:border-cyan-300/30 dark:text-cyan-200 dark:hover:bg-white/5">{{ currentRoleLabel() }}</a>
-        <a routerLink="/profile" routerLinkActive="bg-cyan-300 text-slate-950" class="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-700 transition hover:border-cyan-300/50 hover:bg-slate-100 dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/5" *ngIf="isAuthenticated()">Perfil</a>
-        <button type="button" (click)="toggleTheme()" [attr.aria-label]="isDark() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'" class="rounded-full border border-white/10 dark:border-white/10 px-3 py-2 text-slate-600 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-white/5 text-base leading-none">
+        <a *ngIf="!isAuthenticated()" routerLink="/login" routerLinkActive #loginActive="routerLinkActive"
+           [ngClass]="loginActive.isActive
+             ? 'border-cyan-400 bg-cyan-400 text-slate-950'
+             : 'border-slate-300 text-slate-700 hover:bg-slate-200 hover:text-slate-900 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white'"
+           class="rounded-full border px-4 py-2 text-sm font-medium transition">Login</a>
+
+        <a *ngIf="isAuthenticated()" [routerLink]="dashboardPath()" routerLinkActive #dashboardActive="routerLinkActive"
+           [ngClass]="dashboardActive.isActive
+             ? 'border-cyan-400 bg-cyan-400 text-slate-950'
+             : 'border-cyan-500/40 text-cyan-700 hover:bg-cyan-50 hover:text-cyan-900 dark:border-cyan-300/30 dark:text-cyan-200 dark:hover:bg-white/10 dark:hover:text-cyan-100'"
+           class="rounded-full border px-4 py-2 text-sm font-medium transition">{{ currentRoleLabel() }}</a>
+
+        <a *ngIf="isAuthenticated()" routerLink="/profile" routerLinkActive #profileActive="routerLinkActive"
+           [attr.aria-label]="'Ver perfil de ' + currentUserName()" title="Perfil"
+           [ngClass]="profileActive.isActive
+             ? 'border-cyan-400 ring-2 ring-cyan-300/70'
+             : 'border-slate-300 hover:border-cyan-400 hover:ring-2 hover:ring-cyan-300/40 dark:border-white/15 dark:hover:border-cyan-300'"
+           class="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-slate-100 text-sm font-semibold text-slate-700 shadow-sm transition dark:bg-white/10 dark:text-slate-100">
+          <img *ngIf="avatarImagen() && !avatarImagenFailed()" [src]="avatarImagen()!" [alt]="currentUserName()" class="h-full w-full object-cover" (error)="onAvatarImageError()">
+          <span *ngIf="!avatarImagen() || avatarImagenFailed()">{{ avatarInitials() }}</span>
+        </a>
+
+        <button type="button" (click)="toggleTheme()" [attr.aria-label]="isDark() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'" class="rounded-full border border-slate-300 dark:border-white/15 px-3 py-2 text-base leading-none text-slate-700 dark:text-slate-200 transition hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white">
           {{ isDark() ? '☀' : '🌙' }}
         </button>
-        <button *ngIf="isAuthenticated()" type="button" class="rounded-full border border-rose-400/30 bg-rose-400/10 px-4 py-2 text-sm text-rose-100 transition hover:bg-rose-400/20" (click)="logout()">Salir</button>
+        <button *ngIf="isAuthenticated()" type="button" class="rounded-full border border-rose-500 bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-600 hover:border-rose-600 dark:border-rose-400 dark:bg-rose-500 dark:hover:bg-rose-400" (click)="logout()">Salir</button>
       </div>
     </div>
   </header>

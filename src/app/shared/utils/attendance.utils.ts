@@ -63,7 +63,7 @@ function madridHolidays(year: number): Set<string> {
 
 const holidayCache = new Map<number, Set<string>>();
 
-function isWorkingDay(d: Date): boolean {
+export function isWorkingDay(d: Date): boolean {
   const dow = d.getDay();
   if (dow === 0 || dow === 6) return false;
   const year = d.getFullYear();

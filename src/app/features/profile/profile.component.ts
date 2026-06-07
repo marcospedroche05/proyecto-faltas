@@ -4,7 +4,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { AuthSessionService } from '../../core/auth/auth-session.service';
 import { StudentApiService } from '../../core/services/student-api.service';
 import { AttendanceIncidentModel } from '../../shared/models/attendance-incident.model';
-import { calcularPorcentajeAsistencia } from '../../shared/utils/attendance.utils';
+import { calcularPorcentajeAsistencia, isWorkingDay } from '../../shared/utils/attendance.utils';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -67,23 +67,30 @@ export class ProfileComponent implements OnInit {
     if (!this.isStudent()) return 0;
 
     const incidents = this.incidencias();
-    if (!incidents.length) return 31;
-
-    const lastDate = new Date(
-      Math.max(...incidents.map(i => new Date(i.fechaIncidencia).getTime()))
-    );
-    lastDate.setHours(0, 0, 0, 0);
+    const curso = this.cursoInfo();
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let streak = 0;
-    const current = new Date(lastDate);
-    current.setDate(current.getDate() + 1);
+    let from: Date;
+    if (incidents.length) {
+      const lastDate = new Date(
+        Math.max(...incidents.map(i => new Date(i.fechaIncidencia).getTime()))
+      );
+      lastDate.setHours(0, 0, 0, 0);
+      from = new Date(lastDate);
+      from.setDate(from.getDate() + 1);
+    } else if (curso) {
+      from = new Date(curso.fechaInicio);
+      from.setHours(0, 0, 0, 0);
+    } else {
+      return 0;
+    }
 
-    while (current <= today && streak < 31) {
-      const dow = current.getDay();
-      if (dow !== 0 && dow !== 6) streak++;
+    let streak = 0;
+    const current = new Date(from);
+    while (current <= today) {
+      if (isWorkingDay(current)) streak++;
       current.setDate(current.getDate() + 1);
     }
 
@@ -93,10 +100,12 @@ export class ProfileComponent implements OnInit {
   readonly rachaStyle = computed(() => {
     const days = Math.min(this.racha(), 31);
     const pct = days / 31;
-    const hue = Math.round(pct * 160); // 0=rojo (sin racha), 160=cian (racha máxima)
+    // De gris apagado (sin racha) a rojo encendido (racha máxima)
+    const saturation = Math.round(pct * 78);
+    const lightness = Math.round(65 - pct * 17);
     return {
       width: `${Math.round(pct * 100)}%`,
-      background: `hsl(${hue}, 78%, 48%)`
+      background: `hsl(0, ${saturation}%, ${lightness}%)`
     };
   });
 

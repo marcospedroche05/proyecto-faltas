@@ -59,7 +59,7 @@
               <button type="button" (click)="toggleJustificada(falta)" class="rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs text-emerald-800 hover:bg-emerald-100 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200 dark:hover:bg-emerald-400/20" [attr.aria-label]="'Justificar incidencia de ' + falta.nombreAlumno">Justificar</button>
             </div>
           </div>
-          <p *ngIf="falta.observaciones" class="mt-3 text-sm text-slate-600 dark:text-slate-300">{{ falta.observaciones }}</p>
+          <p *ngIf="falta.observaciones" class="mt-3 break-words text-sm text-slate-600 dark:text-slate-300">{{ falta.observaciones }}</p>
         </article>
         <div *ngIf="pendingJustifications().length === 0" class="text-center text-sm text-slate-600 dark:text-slate-400 py-4">No hay incidencias pendientes de justificacion.</div>
       </div>

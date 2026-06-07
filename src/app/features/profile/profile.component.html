@@ -65,7 +65,7 @@
           <ng-container *ngIf="latestIncident() as latest; else noIncident">
             <p class="mt-3 text-lg font-semibold text-slate-900 dark:text-white">{{ latest.tipoFalta }}</p>
             <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ latest.fechaIncidencia | date:'dd/MM/yyyy · HH:mm' }}</p>
-            <p *ngIf="latest.comentario" class="mt-3 text-sm text-slate-500 dark:text-slate-400">{{ latest.comentario }}</p>
+            <p *ngIf="latest.comentario" class="mt-3 break-words text-sm text-slate-500 dark:text-slate-400">{{ latest.comentario }}</p>
           </ng-container>
           <ng-template #noIncident>
             <p class="mt-3 text-lg font-semibold text-slate-900 dark:text-white">Sin incidencias</p>
@@ -121,7 +121,7 @@
                 {{ incident.esJustificada ? 'Justificada' : 'No justificada' }}
               </span>
             </div>
-            <p *ngIf="incident.comentario" class="mt-3 text-sm text-slate-600 dark:text-slate-300">{{ incident.comentario }}</p>
+            <p *ngIf="incident.comentario" class="mt-3 break-words text-sm text-slate-600 dark:text-slate-300">{{ incident.comentario }}</p>
           </article>
         </div>
       </div>

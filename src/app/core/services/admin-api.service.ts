@@ -29,7 +29,9 @@ export class AdminApiService {
   }
 
   getFaltasDeCurso(idCurso: number): Observable<AdminFaltaModel[]> {
-    return this.http.get<AlumnoFaltasModel[] | null>(`${environment.apiBaseUrl}/api/FaltasAlumno/FaltasCurso`).pipe(
+    return this.http.get<AlumnoFaltasModel[] | null>(`${environment.apiBaseUrl}/api/FaltasAlumno/FaltasCursoAdmin`, {
+      params: { idCurso }
+    }).pipe(
       map(r => this.mapToAdminFaltaModels(r))
     );
   }
@@ -49,7 +51,7 @@ export class AdminApiService {
   }
 
   eliminarFalta(id: number): Observable<void> {
-    return this.http.delete<void>(`${environment.apiBaseUrl}/api/FaltasAlumno/DeleteFaltaAlumno`, {
+    return this.http.delete<void>(`${environment.apiBaseUrl}/api/FaltasAlumno/DeleteFaltaAlumnoAdmin`, {
       params: { idfalta: id }
     });
   }

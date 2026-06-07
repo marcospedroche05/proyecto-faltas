@@ -91,7 +91,7 @@
               {{ incident.esJustificada ? 'Justificada' : 'No justificada' }}
             </span>
           </div>
-          <p *ngIf="incident.comentario" class="mt-3 text-sm text-slate-600 dark:text-slate-300">{{ incident.comentario }}</p>
+          <p *ngIf="incident.comentario" class="mt-3 break-words text-sm text-slate-600 dark:text-slate-300">{{ incident.comentario }}</p>
         </article>
 
         <div *ngIf="incidencias().length === 0 && !loading()" class="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-6 text-center text-sm text-slate-500 dark:text-slate-400">

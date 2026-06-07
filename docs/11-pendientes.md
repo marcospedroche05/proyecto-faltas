@@ -40,6 +40,8 @@
 - [x] Porcentaje de asistencia calculado en frontend (festivos Madrid, Semana Santa dinámica)
 - [x] Foto de perfil real desde campo `imagen` con fallback a iniciales
 - [x] Avatares de alumnos en dashboards de profesor y admin
+- [x] **Fix dashboard admin — selector de curso sin incidencias**: `getFaltasDeCurso()` y `eliminarFalta()` en `AdminApiService` llamaban a los endpoints `FaltasCurso`/`DeleteFaltaAlumno` (scopeados al profesor via JWT, ignoraban `idCurso`), por lo que el desplegable de cursos no mostraba alumnos ni incidencias. El backend expuso endpoints especificos para admin: ahora se usan `GET /api/FaltasAlumno/FaltasCursoAdmin?idCurso={id}` y `DELETE /api/FaltasAlumno/DeleteFaltaAlumnoAdmin?idfalta={id}`. Ver `docs/05-servicios-api.md`.
+- [ ] **`getAllFaltas()` (admin) sigue usando endpoint scopeado al profesor**: `/api/FaltasAlumno/FaltasCurso` probablemente devuelve vacio para el rol admin, lo que deja en cero las tarjetas de resumen y el panel "Incidencias no justificadas". Falta que el backend exponga un endpoint equivalente a `FaltasCursoAdmin` pero sin filtrar por curso (todas las incidencias).
 
 ## Mejoras de UI/UX solicitadas
 

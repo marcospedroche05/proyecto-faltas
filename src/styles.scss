@@ -36,12 +36,6 @@ img, svg, video {
 	display: block;
 }
 
-/* Prevent layout overflow from long words or unbroken content */
-html, body, p, span, a, li, input, button, textarea, select {
-	overflow-wrap: anywhere;
-	word-break: break-word;
-}
-
 /* Ensure form controls don't overflow their containers in flex layouts */
 input, textarea, select, button {
 	min-width: 0;
