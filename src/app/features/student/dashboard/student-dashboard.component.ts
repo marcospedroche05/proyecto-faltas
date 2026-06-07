@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
 
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
 import { StudentApiService } from '../../../core/services/student-api.service';
 import { NotificationService } from '../../../core/services/notification.service';
-import { AttendanceIncidentModel, AttendanceSummaryModel } from '../../../shared/models/attendance-incident.model';
+import { AttendanceIncidentModel } from '../../../shared/models/attendance-incident.model';
 import { CourseModel } from '../../../shared/models/course.model';
+import { calcularPorcentajeAsistencia } from '../../../shared/utils/attendance.utils';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -25,7 +25,6 @@ export class StudentDashboardComponent implements OnInit {
 
   readonly cursos = signal<CourseModel[]>([]);
   readonly incidencias = signal<AttendanceIncidentModel[]>([]);
-  readonly resumen = signal<AttendanceSummaryModel[]>([]);
   readonly loading = signal(true);
 
   readonly summary = computed(() => {
@@ -35,9 +34,9 @@ export class StudentDashboardComponent implements OnInit {
     const salidas = inc.filter(i => i.tipoFalta === 'Salida de antes').length;
     const justificadas = inc.filter(i => i.esJustificada).length;
     const noJustificadas = inc.length - justificadas;
-    const res = this.resumen();
-    const asistencia = res.length > 0
-      ? Math.round(res.reduce((acc, r) => acc + r.porcentajeAsistencia, 0) / res.length * 10) / 10
+    const curso = this.cursos()[0];
+    const asistencia = curso
+      ? calcularPorcentajeAsistencia(inc, curso.fechaInicio, curso.fechaFin)
       : 100;
     return { total: inc.length, faltas, retrasos, salidas, justificadas, noJustificadas, asistencia };
   });
@@ -102,15 +101,17 @@ export class StudentDashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    forkJoin({
-      faltas: this.studentApi.getMisFaltas(),
-      cursos: this.studentApi.getMisCursos(),
-      resumen: this.studentApi.getResumenAsistencia()
-    }).subscribe({
-      next: ({ faltas, cursos, resumen }) => {
-        this.incidencias.set(faltas);
-        this.cursos.set(cursos);
-        this.resumen.set(resumen);
+    this.studentApi.getMisFaltasCompleto().subscribe({
+      next: (data) => {
+        this.incidencias.set(data.faltas);
+        const u = data.usuario;
+        this.cursos.set(u?.idCurso ? [{
+          idCurso: u.idCurso,
+          nombre: u.curso,
+          fechaInicio: u.fechaInicioCurso,
+          fechaFin: u.fechaFinCurso,
+          activo: true
+        }] : []);
         this.loading.set(false);
       },
       error: (err) => {
@@ -122,7 +123,6 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   trackByIncident = (_index: number, incident: AttendanceIncidentModel) => incident.id;
-  trackByResumen = (_index: number, item: AttendanceSummaryModel) => item.idCurso;
   trackByIndex = (index: number) => index;
 
   incidentTone(isJustified: boolean): string {

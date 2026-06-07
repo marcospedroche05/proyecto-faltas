@@ -2,9 +2,11 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { switchMap, map } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
+import { LoginUserDto } from '../../../shared/models/auth.model';
 
 @Component({
   selector: 'app-login',
@@ -26,14 +28,38 @@ export class LoginComponent {
 
   submit(): void {
     this.errorMessage = '';
-    this.authService.login({ email: this.email, password: this.password }).subscribe({
-      next: (response) => {
-        this.authSession.setSession(response.accessToken, response.user);
-        this.router.navigateByUrl(this.authSession.redirectPathForRole(response.user.role));
+    this.authService.login({ userName: this.email, password: this.password }).pipe(
+      switchMap(loginResp =>
+        this.authService.getProfileWithToken(loginResp.response).pipe(
+          map(profile => ({ token: loginResp.response, profile }))
+        )
+      )
+    ).subscribe({
+      next: ({ token, profile }) => {
+        const dto = profile.usuario;
+        const user: LoginUserDto = {
+          id: dto.idUsuario,
+          nombre: dto.nombre,
+          apellidos: dto.apellidos,
+          email: dto.email,
+          role: this.normalizeRole(dto.role),
+          imagen: dto.imagen
+        };
+        this.authSession.setSession(token, user);
+        this.router.navigateByUrl(this.authSession.redirectPathForRole(user.role));
       },
       error: () => {
         this.errorMessage = 'Credenciales incorrectas o usuario inactivo.';
       }
     });
+  }
+
+  private normalizeRole(role: string): string {
+    const roles: Record<string, string> = {
+      ADMINISTRADOR: 'Administrador',
+      PROFESOR: 'Profesor',
+      ALUMNO: 'Alumno'
+    };
+    return roles[role] ?? role;
   }
 }

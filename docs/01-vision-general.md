@@ -2,7 +2,7 @@
 
 ## Que es ProyectoFaltas (Frontend)
 
-Aplicacion Angular 17+ que sirve como frontend del sistema de control de asistencia del centro educativo Tajamar. Conecta con la API REST local `TajamarFaltasApi` para gestionar faltas, retrasos y salidas anticipadas.
+Aplicacion Angular 17+ que sirve como frontend del sistema de control de asistencia del centro educativo Tajamar. Conecta con la API REST externa `https://apicharlasalumnostajamartesting.azurewebsites.net` para gestionar faltas, retrasos y salidas anticipadas.
 
 ## Objetivo
 
@@ -14,10 +14,9 @@ Sustituir el control de asistencia basado en Excel por una aplicacion web con tr
 
 ## Contexto
 
-- Es un proyecto de **pruebas** mientras se desarrolla la API externa real de Tajamar.
-- La API backend corre en `https://localhost:7151`.
-- No conecta con APIs externas; todos los datos son locales (SQL Server).
-- Las passwords de prueba son `12345` (sin hashing).
+- Conecta con la API externa de Tajamar alojada en Azure.
+- Las passwords de prueba son `12345`.
+- El porcentaje de asistencia se calcula en el frontend: días lectivos (L-V) menos festivos de Madrid (nacionales + Comunidad + Semana Santa dinámica).
 
 ## Stack tecnologico
 
@@ -28,4 +27,4 @@ Sustituir el control de asistencia basado en Excel por una aplicacion web con tr
 | Estado | Angular Signals (`signal`, `computed`) |
 | HTTP | `HttpClient` con interceptor JWT |
 | Almacenamiento sesion | `sessionStorage` (token + user JSON) |
-| Backend | TajamarFaltasApi (.NET 8) en localhost:7151 |
+| Backend | API Azure en `apicharlasalumnostajamartesting.azurewebsites.net` |

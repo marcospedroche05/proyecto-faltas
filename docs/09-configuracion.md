@@ -6,30 +6,11 @@ Existen dos archivos de configuracion segun el entorno:
 
 | Archivo | production | apiBaseUrl |
 |---|---|---|
-| `src/environments/environment.ts` | false | http://localhost:5209 |
-| `src/environments/environment.prod.ts` | true | https://api.tajamar.es |
+| `src/environments/environment.ts` | false | https://apicharlasalumnostajamartesting.azurewebsites.net |
+| `src/environments/environment.development.ts` | false | https://apicharlasalumnostajamartesting.azurewebsites.net |
+| `src/environments/environment.prod.ts` | true | https://apicharlasalumnostajamartesting.azurewebsites.net |
 
-**Desarrollo**:
-```typescript
-// src/environments/environment.ts
-export const environment = {
-  production: false,
-  apiBaseUrl: 'http://localhost:5209'
-};
-```
-
-La API backend debe estar corriendo en `http://localhost:5209` con CORS habilitado para el origen del frontend (normalmente `http://localhost:4200`).
-
-**Produccion**:
-```typescript
-// src/environments/environment.prod.ts
-export const environment = {
-  production: true,
-  apiBaseUrl: 'https://api.tajamar.es'
-};
-```
-
-Angular selecciona automaticamente `environment.prod.ts` al hacer build con `--configuration production`.
+Todos los entornos apuntan a la API externa de Azure. Angular selecciona automaticamente `environment.prod.ts` al hacer build con `--configuration production`.
 
 ## App Config
 
@@ -63,6 +44,5 @@ export const appConfig: ApplicationConfig = {
 
 ## Requisitos para ejecutar
 
-1. API backend corriendo: `dotnet run` en `TajamarFaltas.Api`.
-2. Frontend: `ng serve` (por defecto en `http://localhost:4200`).
-3. CORS configurado en la API para aceptar el origen del frontend.
+1. Frontend: `ng serve` (por defecto en `http://localhost:4200`).
+2. La API externa en Azure debe ser accesible (no requiere setup local).

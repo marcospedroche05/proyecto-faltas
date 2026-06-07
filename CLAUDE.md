@@ -2,7 +2,7 @@
 
 ## Descripcion del proyecto
 
-Frontend Angular 17+ para el sistema de control de asistencia del centro educativo Tajamar. Conecta con la API REST local `TajamarFaltasApi` en `https://localhost:7151`. Es un proyecto de **pruebas** mientras se desarrolla la API externa real.
+Frontend Angular 17+ para el sistema de control de asistencia del centro educativo Tajamar. Conecta con la API REST externa `https://apicharlasalumnostajamartesting.azurewebsites.net`.
 
 Tres vistas diferenciadas por rol: Alumno (consulta faltas), Profesor (pase de lista), Administrador (gestion de justificaciones).
 
@@ -16,7 +16,7 @@ Tres vistas diferenciadas por rol: Alumno (consulta faltas), Profesor (pase de l
 | Estado | Angular Signals (`signal`, `computed`) |
 | HTTP | `HttpClient` con interceptor JWT |
 | Sesion | `sessionStorage` (token + user JSON) |
-| API Backend | `https://localhost:7151` (TajamarFaltasApi, .NET 8) |
+| API Backend | `https://apicharlasalumnostajamartesting.azurewebsites.net` (Azure, .NET) |
 
 ## Arquitectura
 
@@ -26,7 +26,7 @@ src/app/
     auth/                   → AuthSessionService (gestion de sesion)
     guards/                 → roleGuard (funcional, roles como strings)
     interceptors/           → authInterceptor (Bearer token)
-    services/               → AuthService, StudentApi, TeacherApi, AdminApi, Users
+    services/               → AuthService, StudentApi, TeacherApi, AdminApi
   shared/
     models/                 → Interfaces TypeScript (auth, user, course, attendance)
   features/
@@ -36,7 +36,7 @@ src/app/
     admin/dashboard/        → AdminDashboardComponent
     profile/                → ProfileComponent (comun a los 3 roles)
   environments/
-    environment.ts          → apiBaseUrl: 'https://localhost:7151'
+    environment.ts          → apiBaseUrl: 'https://apicharlasalumnostajamartesting.azurewebsites.net'
 ```
 
 ## Convenciones de codigo
@@ -165,7 +165,7 @@ Si el usuario pide: "Anade confirmacion antes de eliminar faltas"
 
 ## Reglas criticas
 
-- **No conectar con APIs externas.** Solo la API local en `https://localhost:7151`.
+- **URL de API desde `environment.apiBaseUrl`**. Nunca hardcodear. La API es `https://apicharlasalumnostajamartesting.azurewebsites.net`.
 - **Compilar siempre** despues de cambios de codigo: `ng build` desde la raiz del proyecto.
 - **Preguntar antes de actuar** si la documentacion no cubre el caso.
 - **Standalone components siempre.** No crear NgModules.

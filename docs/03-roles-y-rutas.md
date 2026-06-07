@@ -19,6 +19,7 @@ Los roles se manejan como **strings** (no numeros). Vienen en el campo `role` de
 | `/profile` | `ProfileComponent` | `roleGuard(['Profesor', 'Alumno', 'Administrador'])` |
 | `/student` | `StudentDashboardComponent` | `roleGuard(['Alumno'])` |
 | `/teacher` | `TeacherDashboardComponent` | `roleGuard(['Profesor'])` |
+| `/teacher/calendario` | `TeacherCalendarComponent` | `roleGuard(['Profesor'])` |
 | `/admin` | `AdminDashboardComponent` | `roleGuard(['Administrador'])` |
 | `**` | Redirect → `/login` | — |
 

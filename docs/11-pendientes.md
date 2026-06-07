@@ -30,14 +30,16 @@
 - [x] `app.component.spec.ts` tiene imports rotos — actualizar o eliminar. — Eliminado.
 - [ ] Los `.scss` de componentes estan vacios — evaluar si se pueden eliminar y usar solo Tailwind inline.
 - [ ] `saveAttendance()` en teacher envia N requests secuenciales (1 por alumno con incidencia). Considerar un endpoint batch en la API para enviar todas las faltas de una vez.
-- [ ] `UsersService` solo tiene `getUserById` — actualmente no se usa en ningun componente (el profesor ya recibe `nombreAlumno` enriquecido en las faltas). Evaluar si se necesita.
+- [x] `UsersService` eliminado — no tenia importadores.
 
-## Problemas de conectividad detectados en pruebas
+## Migración a API externa (completada)
 
-- [x] **URL de API incorrecta**: `environment.ts` apuntaba a `https://localhost:7151` pero la API corre en `http://localhost:5209`. Corregir la URL.
-- [x] **Modo claro/oscuro no cambiaba colores**: el script de config de Tailwind estaba antes del CDN. Corregido moviendo el config script DESPUÉS del script CDN en index.html.
-- [ ] **Proxy de desarrollo**: configurar `proxy.conf.json` en Angular para evitar problemas de CORS cuando el frontend (4200) llama a la API (5209) directamente.
-- [ ] **Mensaje de error en login**: cuando la API no responde, el login falla silenciosamente. Mostrar mensaje claro ("No se puede conectar con el servidor").
+- [x] Todos los environments apuntan a `https://apicharlasalumnostajamartesting.azurewebsites.net`
+- [x] Flujo de login: POST /api/Auth/Login → GET /api/Usuarios/Perfil (two-step)
+- [x] Servicios student/teacher/admin migrados a endpoints reales verificados
+- [x] Porcentaje de asistencia calculado en frontend (festivos Madrid, Semana Santa dinámica)
+- [x] Foto de perfil real desde campo `imagen` con fallback a iniciales
+- [x] Avatares de alumnos en dashboards de profesor y admin
 
 ## Mejoras de UI/UX solicitadas
 
@@ -46,3 +48,4 @@
 - [ ] **Avatar circular en perfil**: El div del avatar del ProfileComponent no tiene forma perfectamente circular. Corregir con clases Tailwind adecuadas.
 - [x] **Gráfico de asistencia en StudentDashboard**: Gráfico SVG de líneas (incidencias por semana), con área degradada y puntos, insertado debajo de las cards principales. Calculado en frontend con chartData computed a partir de incidencias().
 - [x] **Racha de asistencia en Perfil**: Calculada en frontend a partir de incidencias() — días laborables (lun-vie) consecutivos sin faltas desde la última incidencia hasta hoy. Mostrada con número grande + barra horizontal (0-31 días) cuyo color va de cyan-verde (racha baja) a rojo (31 días, racha máxima). Mensajes contextuales por tramo. Solo visible para alumnos.
+- [x] **Vista de calendario mensual de incidencias (Profesor)**: Calendario interactivo para revisar historial de faltas/retrasos/salidas de alumnos, navegable mes a mes dentro del rango del curso activo, con estadísticas mensuales y detalle por día seleccionado. Accesible desde dashboard del profesor.

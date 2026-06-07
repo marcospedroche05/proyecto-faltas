@@ -1,6 +1,30 @@
 export interface LoginRequest {
-  email: string;
+  userName: string;
   password: string;
+}
+
+export interface LoginResponse {
+  response: string;
+  role: string;
+  idrole: number;
+}
+
+export interface UserProfileDto {
+  idUsuario: number;
+  nombre: string;
+  apellidos: string;
+  email: string;
+  estadoUsuario: boolean;
+  imagen: string;
+  idRole: number;
+  role: string;
+  idCurso: number;
+  curso: string;
+  idCursoUsuario: number;
+}
+
+export interface UserProfileResponse {
+  usuario: UserProfileDto;
 }
 
 export interface LoginUserDto {
@@ -9,12 +33,7 @@ export interface LoginUserDto {
   apellidos: string;
   email: string;
   role: string;
-}
-
-export interface LoginResponse {
-  accessToken: string;
-  expiresIn: number;
-  user: LoginUserDto;
+  imagen?: string;
 }
 
 export interface AuthSession {

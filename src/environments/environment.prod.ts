@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://api.tajamar.es'
+  apiBaseUrl: 'https://apicharlasalumnostajamartesting.azurewebsites.net'
 };

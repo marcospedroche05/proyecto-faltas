@@ -8,6 +8,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 import { CourseModel } from '../../../shared/models/course.model';
 import { AdminFaltaModel } from '../../../shared/models/attendance-incident.model';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -94,6 +95,22 @@ export class AdminDashboardComponent implements OnInit {
       },
       error: () => this.notify.error('Error al eliminar la incidencia.')
     });
+  }
+
+  readonly failedAdminImages = signal(new Set<number>());
+
+  faltaImagen(falta: AdminFaltaModel): string | null {
+    if (!falta.imagenAlumno || this.failedAdminImages().has(falta.id)) return null;
+    if (falta.imagenAlumno.startsWith('http://') || falta.imagenAlumno.startsWith('https://')) return falta.imagenAlumno;
+    return `${environment.apiBaseUrl}/${falta.imagenAlumno}`;
+  }
+
+  onAdminImageError(id: number): void {
+    this.failedAdminImages.update(s => new Set([...s, id]));
+  }
+
+  getInitials(name: string): string {
+    return name.split(' ').filter(Boolean).slice(0, 2).map(w => w.charAt(0)).join('').toUpperCase();
   }
 
   trackByFalta = (_: number, falta: AdminFaltaModel) => falta.id;

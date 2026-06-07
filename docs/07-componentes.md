@@ -34,6 +34,18 @@ Shell de la aplicacion. Contiene:
 - Signals: `courses`, `activeCourseId`, `students` (RosterStudent[]), `historial`, `statusMessage`, `loading`.
 - Tipos auxiliares: `AttendanceMark`, `RosterStudent`, `attendanceMarkLabels`, `attendanceTypeForMark`.
 
+## TeacherCalendarComponent
+
+- Calendario mensual interactivo para revisar el historial de incidencias (faltas, retrasos, salidas) de alumnos del profesor.
+- Accesible desde dashboard del profesor mediante enlace "Ver historial mensual".
+- **Selector de curso**: botones para cambiar entre cursos asignados (mismo patron que TeacherDashboardComponent).
+- **Navegador de mes**: anterior/siguiente + chips de meses disponibles dentro del rango de fechas del curso.
+- **Estadisticas del mes**: 6 tarjetas (total incidencias, faltas, retrasos, salidas, dias con incidencias, alumnos afectados).
+- **Cuadricula de calendario**: tabla con dias de la semana en cabecera, celdas clicables con badges coloreados segun nº de incidencias, dia actual resaltado, fines de semana marcados, dias fuera de mes atenuados.
+- **Panel de detalle**: muestra las incidencias del dia seleccionado (alumno, tipo con badge, estado justificacion, comentario opcional).
+- Signals: `courses`, `activeCourseId`, `activeCourse`, `selectedMonth`, `selectedDay`, `historial`, `loading`.
+- Computed: `availableMonths`, `calendarWeeks`, `monthStats`, `selectedDayIncidents`.
+
 ## AdminDashboardComponent
 
 - Carga todos los cursos y todas las faltas al iniciar.

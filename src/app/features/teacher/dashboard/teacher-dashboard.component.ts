@@ -1,12 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
 
 import { TeacherApiService, CreateFaltaRequest } from '../../../core/services/teacher-api.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+import { environment } from '../../../../environments/environment';
 import { CourseModel } from '../../../shared/models/course.model';
-import { AlumnoModel, AttendanceIncidentModel, AttendanceType } from '../../../shared/models/attendance-incident.model';
+import { AttendanceIncidentModel, AttendanceType, CursosProfesorAlumnosModel, VistaUsuarioCursoModel } from '../../../shared/models/attendance-incident.model';
 
 export type AttendanceMark = 'presente' | 'falta' | 'retraso' | 'salida';
 
@@ -25,8 +28,11 @@ export const attendanceTypeForMark: Record<Exclude<AttendanceMark, 'presente'>, 
 
 export interface RosterStudent {
   id: number;
+  idCursosUsuarios: number;
   nombre: string;
+  initials: string;
   email: string;
+  imagen?: string;
   estado: AttendanceMark;
   comentario?: string;
 }
@@ -34,7 +40,7 @@ export interface RosterStudent {
 @Component({
   selector: 'app-teacher-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './teacher-dashboard.component.html',
   styleUrl: './teacher-dashboard.component.scss'
 })
@@ -43,9 +49,12 @@ export class TeacherDashboardComponent implements OnInit {
   private readonly notify = inject(NotificationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
+  private readonly cursosConAlumnos = signal<CursosProfesorAlumnosModel[]>([]);
+  private readonly todosAlumnos = signal<VistaUsuarioCursoModel[]>([]);
   readonly courses = signal<CourseModel[]>([]);
   readonly activeCourseId = signal<number | null>(null);
   readonly students = signal<RosterStudent[]>([]);
+  readonly failedStudentImages = signal(new Set<number>());
   readonly historial = signal<AttendanceIncidentModel[]>([]);
   readonly loading = signal(true);
 
@@ -67,8 +76,14 @@ export class TeacherDashboardComponent implements OnInit {
   readonly currentHistory = computed(() => this.historial().slice(0, 6));
 
   ngOnInit(): void {
-    this.teacherApi.getMisCursos().subscribe({
-      next: (courses) => {
+    forkJoin({
+      cursosData: this.teacherApi.getCursosConAlumnos(),
+      alumnos: this.teacherApi.getAlumnosCursoRandom()
+    }).subscribe({
+      next: ({ cursosData, alumnos }) => {
+        this.cursosConAlumnos.set(cursosData);
+        this.todosAlumnos.set(alumnos.filter(a => a.idRole === 2));
+        const courses = cursosData.map(c => c.curso);
         this.courses.set(courses);
         if (courses.length > 0) {
           this.selectCourse(courses[0].idCurso);
@@ -76,7 +91,7 @@ export class TeacherDashboardComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        console.error('Error loading teacher courses', err);
+        console.error('Error loading teacher data', err);
         this.loading.set(false);
       }
     });
@@ -85,17 +100,16 @@ export class TeacherDashboardComponent implements OnInit {
   selectCourse(courseId: number): void {
     this.activeCourseId.set(courseId);
 
-    this.teacherApi.getAlumnosDeCurso(courseId).subscribe({
-      next: (alumnos) => {
-        this.students.set(alumnos.map(a => ({
-          id: a.idUsuario,
-          nombre: `${a.nombre} ${a.apellidos}`.trim(),
-          email: a.email,
-          estado: 'presente' as AttendanceMark
-        })));
-      },
-      error: () => this.students.set([])
-    });
+    this.failedStudentImages.set(new Set());
+    this.students.set(
+      this.todosAlumnos()
+        .filter(a => a.idCurso === courseId)
+        .map(a => {
+          const nombre = a.usuario;
+          const initials = nombre.split(' ').filter(Boolean).slice(0, 2).map((w: string) => w.charAt(0)).join('').toUpperCase();
+          return { id: a.idUsuario, idCursosUsuarios: a.idCursosUsuarios, nombre, initials, email: a.email, imagen: a.imagen, estado: 'presente' as AttendanceMark };
+        })
+    );
 
     this.teacherApi.getFaltasDeCurso(courseId).subscribe({
       next: (faltas) => this.historial.set(faltas),
@@ -133,7 +147,7 @@ export class TeacherDashboardComponent implements OnInit {
 
     pending.forEach(student => {
       const request: CreateFaltaRequest = {
-        idUsuario: student.id,
+        idCursosUsuarios: student.idCursosUsuarios,
         idCurso: courseId,
         fechaIncidencia: new Date().toISOString(),
         tipoFalta: attendanceTypeForMark[student.estado as Exclude<AttendanceMark, 'presente'>],
@@ -171,8 +185,21 @@ export class TeacherDashboardComponent implements OnInit {
         this.historial.update(list => list.filter(f => f.id !== id));
         this.notify.success('Incidencia eliminada.');
       },
-      error: () => this.notify.error('Error al eliminar la incidencia.')
+      error: (err) => {
+        console.error('[DELETE falta] status:', err.status, 'body:', err.error);
+        this.notify.error('Error al eliminar la incidencia.');
+      }
     });
+  }
+
+  studentImagen(student: RosterStudent): string | null {
+    if (!student.imagen || this.failedStudentImages().has(student.id)) return null;
+    if (student.imagen.startsWith('http://') || student.imagen.startsWith('https://')) return student.imagen;
+    return `${environment.apiBaseUrl}/${student.imagen}`;
+  }
+
+  onStudentImageError(id: number): void {
+    this.failedStudentImages.update(s => new Set([...s, id]));
   }
 
   trackByCourse = (_index: number, course: CourseModel) => course.idCurso;

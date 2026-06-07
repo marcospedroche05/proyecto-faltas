@@ -1,0 +1,174 @@
+<div *ngIf="loading()" class="flex h-64 items-center justify-center">
+  <div class="animate-spin h-10 w-10 rounded-full border-4 border-slate-200 dark:border-white/10 border-t-cyan-300"></div>
+</div>
+
+<ng-container *ngIf="!loading()">
+<section class="space-y-6">
+  <header class="rounded-[2rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/75 p-8 shadow-2xl shadow-slate-200/50 dark:shadow-indigo-950/20 backdrop-blur-xl">
+    <p class="text-sm font-medium tracking-wider text-cyan-600/80 dark:text-cyan-300/80">Panel de profesor</p>
+    <h2 class="mt-3 text-3xl font-semibold text-slate-900 dark:text-white md:text-4xl">Calendario de incidencias</h2>
+    <p class="mt-3 max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-300">{{ activeCourse()?.nombre ?? 'Selecciona un curso' }}</p>
+  </header>
+
+  <!-- Selector de curso -->
+  <article class="rounded-[2rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/75 p-6 shadow-2xl shadow-slate-200/50 dark:shadow-indigo-950/20 backdrop-blur-xl">
+    <p class="text-xs uppercase tracking-[0.35em] text-cyan-600/80 dark:text-cyan-300/80">Cursos asignados</p>
+    <h3 class="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">Selecciona el curso activo</h3>
+
+    <div class="mt-5 flex flex-wrap gap-3">
+      <button *ngFor="let course of courses(); trackBy: trackByCourse" type="button" (click)="selectCourse(course.idCurso)" [attr.aria-pressed]="activeCourseId() === course.idCurso" class="rounded-2xl border px-4 py-3 text-left transition" [ngClass]="activeCourseId() === course.idCurso ? 'border-cyan-300/50 bg-cyan-300/10' : 'border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 hover:bg-slate-200/70 dark:hover:bg-white/10'">
+        <p class="min-w-0 truncate text-sm font-semibold text-slate-900 dark:text-white">{{ course.nombre }}</p>
+        <p class="mt-1 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">{{ course.fechaInicio | date:'MMM yy' }} – {{ course.fechaFin | date:'MMM yy' }}</p>
+      </button>
+      <div *ngIf="courses().length === 0 && !loading()" class="w-full text-center text-sm text-slate-400 py-6">No tienes cursos asignados.</div>
+    </div>
+  </article>
+
+  <!-- Navegador de mes -->
+  <article class="rounded-[2rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/75 p-6 shadow-2xl shadow-slate-200/50 dark:shadow-indigo-950/20 backdrop-blur-xl">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-[0.35em] text-cyan-600/80 dark:text-cyan-300/80">Periodo</p>
+        <h3 class="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{{ selectedMonth()?.label ?? 'Sin mes seleccionado' }}</h3>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button type="button" (click)="goToPreviousMonth()" aria-label="Mes anterior" class="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 transition hover:bg-slate-200/70 dark:hover:bg-white/10">&laquo;</button>
+        <span class="min-w-[10rem] rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-950/60 px-4 py-2 text-center text-sm font-semibold text-slate-900 dark:text-white">{{ selectedMonth()?.label ?? '—' }}</span>
+        <button type="button" (click)="goToNextMonth()" aria-label="Mes siguiente" class="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 transition hover:bg-slate-200/70 dark:hover:bg-white/10">&raquo;</button>
+      </div>
+    </div>
+
+    <div class="mt-5 flex flex-wrap gap-2" aria-label="Meses disponibles del curso">
+      <button *ngFor="let option of availableMonths(); trackBy: trackByMonth" type="button" (click)="selectMonth(option)" [attr.aria-pressed]="selectedMonth()?.year === option.year && selectedMonth()?.month === option.month" class="rounded-full border px-4 py-2 text-xs font-medium transition" [ngClass]="selectedMonth()?.year === option.year && selectedMonth()?.month === option.month ? 'border-cyan-300/50 bg-cyan-300/10 text-cyan-700 dark:text-cyan-200' : 'border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-white/10'">
+        {{ option.label }}
+      </button>
+      <div *ngIf="availableMonths().length === 0" class="w-full text-center text-sm text-slate-400 py-6">No hay meses disponibles para este curso.</div>
+    </div>
+  </article>
+
+  <!-- Estadísticas del mes -->
+  <article class="rounded-[2rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/75 p-6 shadow-2xl shadow-slate-200/50 dark:shadow-indigo-950/20 backdrop-blur-xl">
+    <p class="text-xs uppercase tracking-[0.35em] text-cyan-600/80 dark:text-cyan-300/80">Resumen</p>
+    <h3 class="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">Estadísticas del mes</h3>
+
+    <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <article class="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-5">
+        <p class="text-sm font-medium tracking-wider text-slate-600 dark:text-slate-400">Total incidencias</p>
+        <p class="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">{{ monthStats().totalIncidencias }}</p>
+      </article>
+      <article class="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-5">
+        <p class="text-sm font-medium tracking-wider text-slate-600 dark:text-slate-400">Faltas</p>
+        <p class="mt-3 text-3xl font-semibold text-rose-700 dark:text-rose-200">{{ monthStats().faltas }}</p>
+      </article>
+      <article class="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-5">
+        <p class="text-sm font-medium tracking-wider text-slate-600 dark:text-slate-400">Retrasos</p>
+        <p class="mt-3 text-3xl font-semibold text-amber-700 dark:text-amber-200">{{ monthStats().retrasos }}</p>
+      </article>
+      <article class="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-5">
+        <p class="text-sm font-medium tracking-wider text-slate-600 dark:text-slate-400">Salidas</p>
+        <p class="mt-3 text-3xl font-semibold text-cyan-700 dark:text-cyan-200">{{ monthStats().salidas }}</p>
+      </article>
+      <article class="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-5">
+        <p class="text-sm font-medium tracking-wider text-slate-600 dark:text-slate-400">Días con incidencias</p>
+        <p class="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">{{ monthStats().diasConIncidencias }}</p>
+      </article>
+      <article class="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-5">
+        <p class="text-sm font-medium tracking-wider text-slate-600 dark:text-slate-400">Alumnos afectados</p>
+        <p class="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">{{ monthStats().alumnosAfectados }}</p>
+      </article>
+    </div>
+  </article>
+
+  <!-- Cuadrícula del calendario -->
+  <article class="rounded-[2rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/75 p-6 shadow-2xl shadow-slate-200/50 dark:shadow-indigo-950/20 backdrop-blur-xl">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <p class="text-xs uppercase tracking-[0.35em] text-cyan-600/80 dark:text-cyan-300/80">Calendario</p>
+        <h3 class="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{{ selectedMonth()?.label ?? 'Selecciona un mes' }}</h3>
+      </div>
+      <span class="hidden sm:inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-3 py-1 text-xs text-slate-600 dark:text-slate-300">
+        <span class="h-2 w-2 rounded-full bg-cyan-300"></span>Hoy
+      </span>
+    </div>
+
+    <div *ngIf="calendarWeeks().length > 0; else sinCalendario" class="mt-6 overflow-x-auto">
+      <table class="min-w-[42rem] w-full table-fixed border-separate border-spacing-1 text-left text-sm">
+        <thead>
+          <tr>
+            <th *ngFor="let label of weekdayLabels" class="px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ label }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let week of calendarWeeks(); trackBy: trackByWeek">
+            <td *ngFor="let day of week; trackBy: trackByDay"
+                (click)="selectDay(day)"
+                role="button"
+                [attr.aria-label]="(day.date | date:'EEEE, dd/MM/yyyy') + (day.incidencias.length > 0 ? ' · ' + day.incidencias.length + ' incidencias' : '')"
+                [attr.aria-pressed]="selectedDay() && selectedDay()!.getTime() === day.date.getTime()"
+                class="h-20 align-top rounded-2xl border p-2 transition sm:h-24"
+                [class.opacity-40]="!day.enMes"
+                [ngClass]="[
+                  day.enMes ? 'cursor-pointer hover:bg-slate-200/70 dark:hover:bg-white/10' : 'cursor-default',
+                  selectedDay() && selectedDay()!.getTime() === day.date.getTime() ? 'ring-2 ring-cyan-300' : '',
+                  day.esHoy
+                    ? 'border-cyan-300/60 ring-2 ring-cyan-300/60 bg-cyan-50 dark:bg-cyan-400/10'
+                    : (day.finDeSemana
+                        ? 'border-slate-200 dark:border-white/10 bg-slate-100/70 dark:bg-slate-950/40'
+                        : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5')
+                ]">
+              <div class="flex items-start justify-between gap-1">
+                <p class="text-sm font-semibold" [ngClass]="day.esHoy ? 'text-cyan-700 dark:text-cyan-200' : 'text-slate-700 dark:text-slate-200'">{{ day.date | date:'d' }}</p>
+                <span *ngIf="day.incidencias.length > 0"
+                      class="inline-flex min-w-[1.25rem] items-center justify-center rounded-full border px-1.5 py-0.5 text-[0.65rem] font-semibold leading-none"
+                      [ngClass]="day.incidencias.length > 1
+                        ? 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-100'
+                        : 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100'">
+                  {{ day.incidencias.length }}
+                </span>
+              </div>
+              <p *ngIf="day.finDeSemana" class="mt-1 text-[0.6rem] uppercase tracking-wider text-slate-400 dark:text-slate-500">Finde</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #sinCalendario>
+      <div class="text-center text-sm text-slate-400 py-6">No hay datos de calendario para este periodo.</div>
+    </ng-template>
+  </article>
+
+  <!-- Detalle del día seleccionado -->
+  <article *ngIf="selectedDay() as day" class="rounded-[2rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/75 p-6 shadow-2xl shadow-slate-200/50 dark:shadow-indigo-950/20 backdrop-blur-xl">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <p class="text-xs uppercase tracking-[0.35em] text-cyan-600/80 dark:text-cyan-300/80">Detalle del día</p>
+        <h3 class="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{{ day | date:'EEEE, dd/MM/yyyy' }}</h3>
+      </div>
+      <span class="rounded-full border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-3 py-1 text-xs text-slate-600 dark:text-slate-300">{{ selectedDayIncidents().length }} incidencias</span>
+    </div>
+
+    <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-live="polite" aria-label="Incidencias del día seleccionado">
+      <article *ngFor="let incident of selectedDayIncidents(); trackBy: trackByIncident" class="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-950/60 p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">{{ incident.nombreAlumno }} {{ incident.apellidosAlumno }}</p>
+            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ incident.fechaIncidencia | date:'dd/MM/yyyy · HH:mm' }}</p>
+          </div>
+          <span class="whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium" [ngClass]="incident.tipoFalta === 'Falta'
+              ? 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-100'
+              : (incident.tipoFalta === 'Retraso'
+                  ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100'
+                  : 'border-cyan-300 bg-cyan-50 text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-100')">{{ incident.tipoFalta }}</span>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <span class="rounded-full border px-3 py-1 text-xs font-medium" [ngClass]="incident.esJustificada ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-100' : 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-100'">{{ incident.esJustificada ? 'Justificada' : 'No justificada' }}</span>
+        </div>
+        <p *ngIf="incident.comentario" class="mt-3 text-sm text-slate-600 dark:text-slate-300">{{ incident.comentario }}</p>
+      </article>
+    </div>
+
+    <div *ngIf="selectedDayIncidents().length === 0" class="text-center text-sm text-slate-400 py-6">Sin incidencias registradas ese día.</div>
+  </article>
+</section>
+</ng-container>

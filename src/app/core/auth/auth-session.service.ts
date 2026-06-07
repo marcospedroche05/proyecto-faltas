@@ -46,6 +46,10 @@ export class AuthSessionService {
     return `${user.nombre} ${user.apellidos}`.trim() || user.email;
   }
 
+  getUserImagen(): string | null {
+    return this.getUser()?.imagen ?? null;
+  }
+
   redirectPathForRole(role: string | null): string {
     switch (role) {
       case 'Profesor':

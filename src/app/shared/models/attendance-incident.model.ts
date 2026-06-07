@@ -1,3 +1,5 @@
+import { CourseModel } from './course.model';
+
 export type AttendanceType = 'Falta' | 'Retraso' | 'Salida de antes';
 
 export interface AttendanceIncidentModel {
@@ -12,12 +14,36 @@ export interface AttendanceIncidentModel {
   apellidosAlumno?: string;
 }
 
-export interface AttendanceSummaryModel {
+export interface VistaUsuarioCursoModel {
+  idUsuario: number;
+  usuario: string;
+  nombre?: string;
+  apellidos?: string;
+  estadoUsuario: boolean;
+  imagen: string;
+  email: string;
+  idRole: number;
+  role: string;
   idCurso: number;
-  nombreCurso: string;
-  totalHoras: number;
-  horasFalta: number;
-  porcentajeAsistencia: number;
+  curso: string;
+  fechaInicioCurso: string;
+  fechaFinCurso: string;
+  idCursosUsuarios: number;
+}
+
+export interface AlumnoFaltasModel {
+  usuario: VistaUsuarioCursoModel | null;
+  faltas: AttendanceIncidentModel[];
+}
+
+export interface AlumnoCursoItemModel {
+  alumno: VistaUsuarioCursoModel;
+}
+
+export interface CursosProfesorAlumnosModel {
+  numeroAlumnos: number;
+  curso: CourseModel;
+  alumnos: AlumnoCursoItemModel[];
 }
 
 export interface AlumnoModel {
@@ -25,12 +51,14 @@ export interface AlumnoModel {
   nombre: string;
   apellidos: string;
   email: string;
+  imagen?: string;
 }
 
 export interface AdminFaltaModel {
   id: number;
   idAlumno: number;
   nombreAlumno: string;
+  imagenAlumno?: string;
   idCurso: number;
   nombreCurso: string;
   fecha: string;

@@ -3,7 +3,9 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 
 import { AuthSessionService } from '../../core/auth/auth-session.service';
 import { StudentApiService } from '../../core/services/student-api.service';
-import { AttendanceIncidentModel, AttendanceSummaryModel } from '../../shared/models/attendance-incident.model';
+import { AttendanceIncidentModel } from '../../shared/models/attendance-incident.model';
+import { calcularPorcentajeAsistencia } from '../../shared/utils/attendance.utils';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-profile',
@@ -21,7 +23,15 @@ export class ProfileComponent implements OnInit {
   readonly userEmail = computed(() => this.authSession.getUser()?.email ?? '');
 
   readonly incidencias = signal<AttendanceIncidentModel[]>([]);
-  readonly resumen = signal<AttendanceSummaryModel[]>([]);
+  readonly cursoInfo = signal<{ fechaInicio: string; fechaFin: string } | null>(null);
+  readonly imagenFailed = signal(false);
+
+  readonly userImagen = computed(() => {
+    const img = this.authSession.getUserImagen();
+    if (!img) return null;
+    if (img.startsWith('http://') || img.startsWith('https://')) return img;
+    return `${environment.apiBaseUrl}/${img}`;
+  });
 
   readonly avatar = computed(() => {
     const name = this.userName();
@@ -48,9 +58,9 @@ export class ProfileComponent implements OnInit {
   });
 
   readonly asistenciaMedia = computed(() => {
-    const r = this.resumen();
-    if (r.length === 0) return null;
-    return Math.round(r.reduce((acc, x) => acc + x.porcentajeAsistencia, 0) / r.length * 10) / 10;
+    const curso = this.cursoInfo();
+    if (!curso) return null;
+    return calcularPorcentajeAsistencia(this.incidencias(), curso.fechaInicio, curso.fechaFin);
   });
 
   readonly racha = computed(() => {
@@ -69,13 +79,11 @@ export class ProfileComponent implements OnInit {
 
     let streak = 0;
     const current = new Date(lastDate);
-    current.setDate(current.getDate() + 1); // empezar el día siguiente a la última falta
+    current.setDate(current.getDate() + 1);
 
     while (current <= today && streak < 31) {
-      const dow = current.getDay(); // 0=dom, 6=sab
-      if (dow !== 0 && dow !== 6) {
-        streak++;
-      }
+      const dow = current.getDay();
+      if (dow !== 0 && dow !== 6) streak++;
       current.setDate(current.getDate() + 1);
     }
 
@@ -85,7 +93,7 @@ export class ProfileComponent implements OnInit {
   readonly rachaStyle = computed(() => {
     const days = Math.min(this.racha(), 31);
     const pct = days / 31;
-    const hue = Math.round(160 - pct * 160);
+    const hue = Math.round(pct * 160); // 0=rojo (sin racha), 160=cian (racha máxima)
     return {
       width: `${Math.round(pct * 100)}%`,
       background: `hsl(${hue}, 78%, 48%)`
@@ -94,15 +102,21 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.isStudent()) {
-      this.studentApi.getMisFaltas().subscribe({
-        next: (faltas) => this.incidencias.set(faltas),
+      this.studentApi.getMisFaltasCompleto().subscribe({
+        next: (data) => {
+          this.incidencias.set(data.faltas);
+          const u = data.usuario;
+          if (u?.idCurso) {
+            this.cursoInfo.set({ fechaInicio: u.fechaInicioCurso, fechaFin: u.fechaFinCurso });
+          }
+        },
         error: () => this.incidencias.set([])
       });
-      this.studentApi.getResumenAsistencia().subscribe({
-        next: (resumen) => this.resumen.set(resumen),
-        error: () => this.resumen.set([])
-      });
     }
+  }
+
+  onImageError(): void {
+    this.imagenFailed.set(true);
   }
 
   isStudent(): boolean {

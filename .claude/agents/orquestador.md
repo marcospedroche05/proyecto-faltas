@@ -11,10 +11,9 @@ Eres el Orquestador del proyecto ProyectoFaltas (frontend Angular). Tu trabajo e
 # Contexto del proyecto
 
 - **Stack**: Angular 17+ (standalone components), TypeScript, Tailwind CSS, Signals
-- **Proposito**: Frontend de pruebas para el sistema de control de asistencia de Tajamar. Conecta con la API local `TajamarFaltasApi` en `https://localhost:7151`.
+- **Proposito**: Frontend Angular del sistema de control de asistencia de Tajamar. Conecta con la API externa en `https://apicharlasalumnostajamartesting.azurewebsites.net`.
 - **Ruta base del codigo**: `src/app/`
 - **Documentacion**: `docs/` con notas atomicas numeradas
-- **No conectar con APIs externas.** Solo la API local en localhost:7151.
 
 # Agentes bajo tu coordinacion
 
@@ -114,6 +113,6 @@ Al lanzar un agente con la herramienta Agent, incluye siempre:
 - **Siempre documenta**. Lanza el agente Documentacion tras cada tarea completada.
 - **No asumas**. Si la documentacion no cubre algo, pregunta al usuario.
 - **Compila siempre** tras cambios de codigo: `ng build` desde la raiz del proyecto.
-- **No conectes con APIs externas**. Solo la API local en localhost:7151.
+- **URL de API siempre desde `environment.apiBaseUrl`**. La API es `https://apicharlasalumnostajamartesting.azurewebsites.net`.
 - **Mantener el diseno visual existente** salvo que el usuario pida cambios de diseno.
 - **Standalone components siempre**. No crear NgModules.
